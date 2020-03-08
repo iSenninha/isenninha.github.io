@@ -252,6 +252,240 @@
   
   
   <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="https://isenninha.github.io/2020/03/08/use-mat/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="senninha">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="senninha">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2020/03/08/use-mat/" itemprop="url">Memory Analyzer使用</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2020-03-08T12:19:12+08:00">
+                2020-03-08
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/" itemprop="url" rel="index">
+                    <span itemprop="name">Java</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <h4 id="1-名词概念解释"><a href="#1-名词概念解释" class="headerlink" title="1. 名词概念解释"></a>1. 名词概念解释</h4><h5 id="1-1-Shallow-heap-amp-amp-Retained-Heap"><a href="#1-1-Shallow-heap-amp-amp-Retained-Heap" class="headerlink" title="1.1 Shallow heap &amp;&amp; Retained Heap"></a>1.1 Shallow heap &amp;&amp; Retained Heap</h5><p>shallow是浅的意思，比如，一个ArrayList的浅占用仅仅是size,elementData[],modCount三个成员对象16个字节，加上引用8个字节，总共是24个字节。但是elementData才是冰山下的大头。retained直译是保留的意思，指的是某个对象所持有的所有对象（直接和间接）。某种意义上来说，reatined heap才是我们更加关注的对象。</p>
+<h5 id="1-2-Dominator-Tree"><a href="#1-2-Dominator-Tree" class="headerlink" title="1.2 Dominator Tree"></a>1.2 Dominator Tree</h5><p>Dominator Tree就是对象关系树，一个对象的所有子支配树对象，就是上面所说的retained heap。</p>
+<h5 id="1-3-Path-to-GC-Roots"><a href="#1-3-Path-to-GC-Roots" class="headerlink" title="1.3 Path to GC Roots"></a>1.3 Path to GC Roots</h5><p>通过分析gc roots可以确定某些对象无法回收的原因。</p>
+<h5 id="1-4-Outgoing-references-amp-amp-Incoming-references"><a href="#1-4-Outgoing-references-amp-amp-Incoming-references" class="headerlink" title="1.4 Outgoing references &amp;&amp; Incoming references"></a>1.4 Outgoing references &amp;&amp; Incoming references</h5><p>目标对象x，如果要查询x引用了谁，那么就是前者，如果要看x被谁引用，那么就是后者。</p>
+<h5 id="1-5-Garbage-Collection-Roots"><a href="#1-5-Garbage-Collection-Roots" class="headerlink" title="1.5 Garbage Collection Roots"></a>1.5 Garbage Collection Roots</h5><p>GC Roots是一个能被GC Roots是一个能被堆访问到的对象，下面是几种GC Roots:<br>堆访问到的对象，下面是几种GC Roots:</p>
+<ul>
+<li>System Classes 系统加载的类</li>
+<li>JNI Local native 代码的本地栈帧</li>
+<li>JNI Global</li>
+<li>Thread Block 被一个活跃中的线程引用的对象</li>
+<li>Busy Monitor 锁</li>
+<li>Java Local 本地栈帧变量</li>
+<li>Native Stack native代码的本地栈帧</li>
+<li>Finalizable 正在等待执行finalize()方法的队列</li>
+</ul>
+<h4 id="2-界面常用操作"><a href="#2-界面常用操作" class="headerlink" title="2. 界面常用操作"></a>2. 界面常用操作</h4><p><img src="/2020/03/08/use-mat/main_interface.png" alt="main_interface"></p>
+<p>打开一个dump下的堆内存界面如上，3819.heapdump下的8个图标分别含义分别如下:</p>
+<ul>
+<li>open overview panel 打开概述界面，图片里的就是概述界面。</li>
+<li>create a histogram from an arbitrary set of objects 打开对象统计界面</li>
+<li>open dominator tree for entire heap 打开对象关系树状图(类似于tree命令)</li>
+<li>open object query language studio 执行OQL查询</li>
+<li>show thread stack 展示线程堆栈</li>
+<li>run expert system test 运行自动检测内存泄漏等功能</li>
+<li>open query browser 打开查询界面，查询某个对象的被引用，引用对象等，必须指定一个对象</li>
+<li>find object by address 通过一个内存地址查询对象</li>
+</ul>
+<h4 id="3-Overview页面操作"><a href="#3-Overview页面操作" class="headerlink" title="3. Overview页面操作"></a>3. Overview页面操作</h4><p>当我们拿到一个heapdump并导入堆栈的时候，确保我们的内存大于heapdump文件，并且检查一下<strong>MemoryAnalyzer.ini</strong>文件，确保最大堆内存大于我们的heapdump文件。<br>解析完heapdump，直接打开overview，会有步骤建议如下:<br><img src="/2020/03/08/use-mat/overview_action.png" alt="overview_action"></p>
+<h5 id="3-1-actions"><a href="#3-1-actions" class="headerlink" title="3.1 actions"></a>3.1 actions</h5><ul>
+<li>Histogram：会打开所有的对象统计，可以按对象数量，shallow memory, retained memory排序</li>
+<li>Dminator Tree：直接展示支配树，一样可以按上面的几个条件排序</li>
+<li>Top Consumers：直接查看最耗费内存（retained heap）的的对象</li>
+<li>Duplicate Classes：检测重复加载的Class</li>
+</ul>
+<h5 id="3-2-reports"><a href="#3-2-reports" class="headerlink" title="3.2 reports"></a>3.2 reports</h5><ul>
+<li>Leak Suspects：泄漏检测，运行这个选项直接会给出可能的内存泄漏点</li>
+<li>Top Components：分析占用内存最高的的组件</li>
+</ul>
+<h4 id="4-Object-Query-Language"><a href="#4-Object-Query-Language" class="headerlink" title="4. Object Query Language"></a>4. Object Query Language</h4><p>OQL语法类似SQL，下面是基本语法：</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">SELECT</span> *</span><br><span class="line"><span class="keyword">FROM</span> [ INSTANCEOF ] &lt;<span class="keyword">class</span> <span class="keyword">name</span>=<span class="string">"name"</span>&gt;</span><br><span class="line">[ <span class="keyword">WHERE</span> &lt;filter-expression&gt; ]</span><br><span class="line">&lt;/filter-expression&gt;&lt;/<span class="keyword">class</span>&gt;</span><br></pre></td></tr></table></figure>
+<p>举个栗子，访问ArrayList中数组长度大于等于5的对象和他的所有持有的引用：</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">SELECT</span> <span class="keyword">as</span> retained <span class="keyword">set</span> * </span><br><span class="line"><span class="keyword">from</span> java.util.ArrayList <span class="keyword">list</span> </span><br><span class="line"><span class="keyword">where</span> list.elementData != <span class="literal">null</span> <span class="keyword">and</span> list.elementData.@<span class="keyword">length</span> &gt;= <span class="number">5</span></span><br></pre></td></tr></table></figure>
+<p>select如果加上AS RETAINED SET，将查询所有持有的引用。<br>from可以是objectAddress，objectId，className，或者是子查询的结果。<br>如果是一个对象的field，直接通过<strong>.</strong>的方式即可访问，使用<strong>.@</strong>访问MAT构建的JavaBean属性，这些属性如下：</p>
+<table>
+<thead>
+<tr>
+<th align="center">属性名</th>
+<th align="left">属性含义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="center">objectId</td>
+<td align="left">对象id</td>
+</tr>
+<tr>
+<td align="center">objectAddress</td>
+<td align="left">地址id</td>
+</tr>
+<tr>
+<td align="center">clazz</td>
+<td align="left">class对象</td>
+</tr>
+<tr>
+<td align="center">usedHeapSize</td>
+<td align="left">浅堆</td>
+</tr>
+<tr>
+<td align="center">retainedHeapSize</td>
+<td align="left">保留堆</td>
+</tr>
+<tr>
+<td align="center">displayName</td>
+<td align="left">类名 + 地址名</td>
+</tr>
+<tr>
+<td align="center">classLoaderIds</td>
+<td align="left">loaderId</td>
+</tr>
+<tr>
+<td align="center">length</td>
+<td align="left">数组的长度</td>
+</tr>
+<tr>
+<td align="center">valueArray</td>
+<td align="left">primitive数组的内容 .@valueArray[index]</td>
+</tr>
+<tr>
+<td align="center">referenceArray</td>
+<td align="left">引用数组的内容，使用方式同上</td>
+</tr>
+</tbody></table>
+<p>还有一些复杂的用法还不是很清楚，待探索。另外，上述所有的参考资料，可以直接从Memory Analyzer的Help-&gt;Help contents里面的文档查看，或者浏览器直接访问参考资料里的地址。</p>
+<h4 id="参考资料"><a href="#参考资料" class="headerlink" title="参考资料"></a>参考资料</h4><p><a href="https://help.eclipse.org/2019-12/topic/org.eclipse.mat.ui.help/welcome.html" target="_blank" rel="noopener">Memory Analyzer</a></p>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
     <link itemprop="mainEntityOfPage" href="https://isenninha.github.io/2020/03/01/protobuf/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -742,7 +976,7 @@
               
                 <a href="/archives">
               
-                  <span class="site-state-item-count">2</span>
+                  <span class="site-state-item-count">3</span>
                   <span class="site-state-item-name">posts</span>
                 </a>
               </div>
@@ -764,7 +998,7 @@
               
               <div class="site-state-item site-state-tags">
                 
-                  <span class="site-state-item-count">4</span>
+                  <span class="site-state-item-count">7</span>
                   <span class="site-state-item-name">tags</span>
                 
               </div>
