@@ -1,0 +1,890 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next gemini use-motion" lang="zh">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.4" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.4">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.4" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="IntelliJ IDEA,Visual Studio Code,Keymap," />
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="平时简单的写一些脚本或者看开源代码，打开IDEA太重了，一般都是VSC一把刷。由于不熟悉vsc的快捷键，效率实在太低，一开始用了IDEA Keybindings这个插件，但是总是有一些快捷键无法原生映射，用着反而嗝应，所以还是花点时间熟悉一下vsc上的快捷键，对照着IDEA的一些常用快捷键来对比熟悉。下表的含义列是Idea Keymap里的描述，Idea Keymap列是以IdeaGnomeKey">
+<meta property="og:type" content="article">
+<meta property="og:title" content="IDEA &amp; VSC快捷键对照">
+<meta property="og:url" content="https://isenninha.github.io/2020/03/24/idea_and_vsc_keymap_contrast/index.html">
+<meta property="og:site_name" content="senninha">
+<meta property="og:description" content="平时简单的写一些脚本或者看开源代码，打开IDEA太重了，一般都是VSC一把刷。由于不熟悉vsc的快捷键，效率实在太低，一开始用了IDEA Keybindings这个插件，但是总是有一些快捷键无法原生映射，用着反而嗝应，所以还是花点时间熟悉一下vsc上的快捷键，对照着IDEA的一些常用快捷键来对比熟悉。下表的含义列是Idea Keymap里的描述，Idea Keymap列是以IdeaGnomeKey">
+<meta property="og:locale" content="zh">
+<meta property="article:published_time" content="2020-03-24T02:29:29.000Z">
+<meta property="article:modified_time" content="2020-03-24T05:30:33.386Z">
+<meta property="article:author" content="senninha">
+<meta property="article:tag" content="IntelliJ IDEA">
+<meta property="article:tag" content="Visual Studio Code">
+<meta property="article:tag" content="Keymap">
+<meta name="twitter:card" content="summary">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Gemini',
+    version: '5.1.4',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="https://isenninha.github.io/2020/03/24/idea_and_vsc_keymap_contrast/"/>
+
+
+
+
+
+  <title>IDEA & VSC快捷键对照 | senninha</title>
+  
+
+
+
+
+
+
+
+
+<meta name="generator" content="Hexo 4.2.0"></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">senninha</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle">zeng haha</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-主页">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            主页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-分类">
+          <a href="/categories/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br />
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-归档">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-标签">
+          <a href="/tags/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br />
+            
+            标签
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="https://isenninha.github.io/2020/03/24/idea_and_vsc_keymap_contrast/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="senninha">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="senninha">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">IDEA & VSC快捷键对照</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2020-03-24T10:29:29+08:00">
+                2020-03-24
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/DevTools/" itemprop="url" rel="index">
+                    <span itemprop="name">DevTools</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>平时简单的写一些脚本或者看开源代码，打开IDEA太重了，一般都是VSC一把刷。由于不熟悉vsc的快捷键，效率实在太低，一开始用了<strong>IDEA Keybindings</strong>这个插件，但是总是有一些快捷键无法原生映射，用着反而嗝应，所以还是花点时间熟悉一下vsc上的快捷键，对照着IDEA的一些常用快捷键来对比熟悉。<br>下表的<strong>含义</strong>列是Idea Keymap里的描述，<strong>Idea Keymap</strong>列是以IdeaGnomeKeymap快捷键为基准，部分魔改过。</p>
+<table>
+<thead>
+<tr>
+<th align="center">含义</th>
+<th align="center">VSC Keymap</th>
+<th align="center">Idea Keymap</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="center">界面操作</td>
+<td align="center">———-</td>
+<td align="center"></td>
+</tr>
+<tr>
+<td align="center">Previous Tab(前一个tab)</td>
+<td align="center">Ctrl + Shift + Tab</td>
+<td align="center">Alt + L</td>
+</tr>
+<tr>
+<td align="center">Next Tab(前一个tab)</td>
+<td align="center">Ctrl + Shift + Tab</td>
+<td align="center">Alt + H</td>
+</tr>
+<tr>
+<td align="center">Back(向后)</td>
+<td align="center">Ctrl + Alt + -</td>
+<td align="center">Ctrl + Shift + Left Arrow(Ctrl + Alt + Shift + H)</td>
+</tr>
+<tr>
+<td align="center">Forward(向前)</td>
+<td align="center">Ctrl + Shift + -</td>
+<td align="center">Ctrl + Shift + Right Arrow(Ctrl + Alt + Shift + L)</td>
+</tr>
+<tr>
+<td align="center">Close</td>
+<td align="center">Ctrl + W</td>
+<td align="center">Ctrl + F4</td>
+</tr>
+<tr>
+<td align="center">Close All</td>
+<td align="center">Ctrl + K Ctrl + W</td>
+<td align="center">Ctrl + Shift + Q</td>
+</tr>
+<tr>
+<td align="center">Project(切换焦点到Project)</td>
+<td align="center">Alt + 1</td>
+<td align="center">Ctrl + Shift + E(焦点在Explorer的时候可以切换回Editor)</td>
+</tr>
+<tr>
+<td align="center">Open Class</td>
+<td align="center">Ctrl + P</td>
+<td align="center">Ctrl + N</td>
+</tr>
+<tr>
+<td align="center">Run(打开Run输出面板)</td>
+<td align="center">Ctrl + K Ctrl + H</td>
+<td align="center">Alt + 4(关闭的话按 Ctrl + F4)</td>
+</tr>
+<tr>
+<td align="center">Debug(打开Debug输出面板)</td>
+<td align="center">Ctrl + Shift + Y</td>
+<td align="center">Alt + 5</td>
+</tr>
+<tr>
+<td align="center">Split Vertically(垂直分屏)</td>
+<td align="center">Ctrl + \</td>
+<td align="center">Alt + V</td>
+</tr>
+<tr>
+<td align="center">Goto Previous Splitter</td>
+<td align="center">Ctrl + K Ctrl Left Arrow</td>
+<td align="center">Ctrl + Alt + 2</td>
+</tr>
+<tr>
+<td align="center">Goto Next Splitter</td>
+<td align="center">Ctrl + K Ctrl Right Arrow</td>
+<td align="center">Ctrl + Alt + 3</td>
+</tr>
+<tr>
+<td align="center">Focus into 1,2,3 splitter</td>
+<td align="center">Ctrl + 1/2/3</td>
+<td align="center">None</td>
+</tr>
+<tr>
+<td align="center">编辑相关</td>
+<td align="center">———-</td>
+<td align="center"></td>
+</tr>
+<tr>
+<td align="center">Parameter Info(提示输入参数)</td>
+<td align="center">Ctrl + Space</td>
+<td align="center">Ctrl + P</td>
+</tr>
+<tr>
+<td align="center">Format Code</td>
+<td align="center">Ctrl + K Ctrl + F</td>
+<td align="center">Ctrl + Alt + F</td>
+</tr>
+<tr>
+<td align="center">Show Context Actions(Quick Fix)</td>
+<td align="center">Ctrl + .</td>
+<td align="center">Alt + Enter</td>
+</tr>
+<tr>
+<td align="center">Find Usages</td>
+<td align="center">Shift + F12</td>
+<td align="center">Alt + Shift + 7</td>
+</tr>
+<tr>
+<td align="center">Rename</td>
+<td align="center">F2</td>
+<td align="center">Shift + F6</td>
+</tr>
+<tr>
+<td align="center">Expand Selection</td>
+<td align="center">Shift + Alt + Right Arrow</td>
+<td align="center">Ctrl + W</td>
+</tr>
+<tr>
+<td align="center">Shrink Selection</td>
+<td align="center">Shift + Alt + Left Arrow</td>
+<td align="center">Ctrl + Shift + W</td>
+</tr>
+<tr>
+<td align="center">Replace</td>
+<td align="center">Ctrl + H</td>
+<td align="center">Ctrl + R</td>
+</tr>
+<tr>
+<td align="center">Next Highlighted Error</td>
+<td align="center">F2</td>
+<td align="center">F8</td>
+</tr>
+<tr>
+<td align="center">Previous Highlighted Error</td>
+<td align="center">Shift + F2</td>
+<td align="center">Shift + F8</td>
+</tr>
+<tr>
+<td align="center">Select All Occurrences(选中所有当前的选择)</td>
+<td align="center">Ctrl + Shift + L (Ctrl + F2(Select Current Word))</td>
+<td align="center">Ctrl + Alt + Shift + B</td>
+</tr>
+<tr>
+<td align="center">调试相关</td>
+<td align="center">———-</td>
+<td align="center"></td>
+</tr>
+<tr>
+<td align="center">Toggle Line Breakpoint</td>
+<td align="center">F9</td>
+<td align="center">Ctrl + F8</td>
+</tr>
+<tr>
+<td align="center">Step Into</td>
+<td align="center">F11</td>
+<td align="center">F7</td>
+</tr>
+<tr>
+<td align="center">Step Out</td>
+<td align="center">Shift + F11</td>
+<td align="center">Shift + F8</td>
+</tr>
+<tr>
+<td align="center">Step Over</td>
+<td align="center">F10</td>
+<td align="center">F8</td>
+</tr>
+<tr>
+<td align="center">Start</td>
+<td align="center">F5</td>
+<td align="center">Shift + F10</td>
+</tr>
+<tr>
+<td align="center">Stop</td>
+<td align="center">Shift + F5</td>
+<td align="center">Ctrl + F2</td>
+</tr>
+</tbody></table>
+<p>附录:<a href="https://code.visualstudio.com/shortcuts/keyboard-shortcuts-linux.pdf" target="_blank" rel="noopener">VSC-Keymap</a></p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/IntelliJ-IDEA/" rel="tag"># IntelliJ IDEA</a>
+          
+            <a href="/tags/Visual-Studio-Code/" rel="tag"># Visual Studio Code</a>
+          
+            <a href="/tags/Keymap/" rel="tag"># Keymap</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2020/03/08/use-mat/" rel="next" title="Memory Analyzer使用">
+                <i class="fa fa-chevron-left"></i> Memory Analyzer使用
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+
+      <section class="site-overview-wrap sidebar-panel sidebar-panel-active">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name">senninha</p>
+              <p class="site-description motion-element" itemprop="description"></p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives">
+              
+                  <span class="site-state-item-count">4</span>
+                  <span class="site-state-item-name">posts</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-categories">
+                <a href="/categories/index.html">
+                  <span class="site-state-item-count">3</span>
+                  <span class="site-state-item-name">categories</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                
+                  <span class="site-state-item-count">10</span>
+                  <span class="site-state-item-name">tags</span>
+                
+              </div>
+            
+
+          </nav>
+
+          
+
+          
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">senninha</span>
+
+  
+</div>
+
+
+  <div class="powered-by">Powered by <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a></div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">Theme &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Gemini</a> v5.1.4</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.4"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.1.4"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.4"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>
