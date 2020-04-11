@@ -348,14 +348,14 @@
             <p>内网发布用的配置数据库突然崩溃，查看mysql_error.log 可以看到只要一有写操作，一直在重复<strong>kill -6 -&gt; recovery</strong>，无法自行恢复。摸索了两个小时，终于恢复完毕。现在记录一下主要的步骤。</p>
 <h4 id="停止服务，备份所有数据"><a href="#停止服务，备份所有数据" class="headerlink" title="停止服务，备份所有数据"></a>停止服务，备份所有数据</h4><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">service stop mysql</span><br><span class="line">tar -jcvf ~&#x2F;mysql_data.tar.bz2 &#x2F;var&#x2F;lib&#x2F;mysql</span><br></pre></td></tr></table></figure>
 
-<h4 id="重启mysql并备份数据"><a href="#重启mysql并备份数据" class="headerlink" title="重启mysql并备份数据"></a>重启mysql并备份数据</h4><p>首先尝试直接启动，结果启动仍然失败。<br>尝试修改<strong>forcing_innodb_recovery</strong>的参数值，从1～6逐个尝试，最终在设置成2的时候启动成功。<br>这个参数值的含义如下:</p>
+<h4 id="重启MySQL并备份数据"><a href="#重启MySQL并备份数据" class="headerlink" title="重启MySQL并备份数据"></a>重启MySQL并备份数据</h4><p>首先尝试直接启动，结果启动仍然失败。<br>尝试修改<strong>forcing_innodb_recovery</strong>的参数值，从1～6逐个尝试，最终在设置成2的时候启动成功。<br>这个参数值的含义如下:</p>
 <blockquote>
 <p>Mode 1 当发现一个损坏的数据页时不让MYSQL实例自动崩溃<br>Mode 2 不启用后台操作<br>Mode 3 不尝试 回滚事务<br>Mode 4 不计算状态也不应用buffer change<br>Mode 5 在启动过程中不去关心undo log<br>Mode 6 在启动过程中不关心重做日志ib_logfiles， 不去做前滚</p>
 </blockquote>
 <p>直接备份全库数据：</p>
 <figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mysqldump -u name -p --all-databases&gt; ~&#x2F;total.sql</span><br></pre></td></tr></table></figure>
 <p>等待备份完成。</p>
-<h4 id="尝试drop掉出问题的库-表"><a href="#尝试drop掉出问题的库-表" class="headerlink" title="尝试drop掉出问题的库/表"></a>尝试drop掉出问题的库/表</h4><p>检查有问题的库/表</p>
+<h4 id="尝试Drop掉出问题的库-表"><a href="#尝试Drop掉出问题的库-表" class="headerlink" title="尝试Drop掉出问题的库/表"></a>尝试Drop掉出问题的库/表</h4><p>检查有问题的库/表</p>
 <figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mysqlcheck -u name -p --all-databases</span><br></pre></td></tr></table></figure>
 <p>尝试drop掉出问题的表/库，如果成功，直接跳过下面这一步，如果drop失败了，这个时候就要强行删掉出问题的文件了。<br>停下mysql服务，尝试删掉出错的文件:</p>
 <figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">mv ib_logfile0 ib_logfile0.bak</span><br><span class="line">mv ib_logfile1 ib_logfile1.bak</span><br><span class="line">mv ibdata1 ibdata1.bak</span><br></pre></td></tr></table></figure>
