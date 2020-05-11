@@ -252,6 +252,173 @@
   
   
   <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="https://isenninha.github.io/2020/05/11/memory-leak-caused-by-netty/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="senninha">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="senninha">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2020/05/11/memory-leak-caused-by-netty/" itemprop="url">Netty shutdownGracefully 处理缺陷导致的内存泄漏</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2020-05-11T11:22:17+08:00">
+                2020-05-11
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/" itemprop="url" rel="index">
+                    <span itemprop="name">Java</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <p>上周两个应用CPU涨到500%，查看监控<strong>Major GC</strong>次数、耗时都暴涨：</p>
+<p><img src="/2020/05/11/memory-leak-caused-by-netty/garbage_collection_count.png" alt="garbage_collection_count.png"></p>
+<p>看情况很可能是内存泄漏了，接着看一下内存统计</p>
+<blockquote>
+<p>jmap -histo</p>
+</blockquote>
+<p>发现一个不该存在如此多的对象竟然有200w+个：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"> num     #instances         #bytes  class name</span><br><span class="line">----------------------------------------------</span><br><span class="line">  16:       2144453       51466872  com.xxx.XXXAction</span><br></pre></td></tr></table></figure>
+
+<p>这个时候，进程不响应Jmx的请求了，埋点的监控诊断无法正常进行，并且这个时候已经是业务低峰期，干脆直接dump下内存，保留线程栈，然后重启应用。重启后业务恢复正常。</p>
+<h4 id="分析泄漏点"><a href="#分析泄漏点" class="headerlink" title="分析泄漏点"></a>分析泄漏点</h4><p>根据代码，这个<strong>XXXAction</strong>是<strong>FrokJoinPool</strong>中的任务，200w+任务全部积压在这个队列里没有有效消费。直接通过前面保留的线程栈，可以看到这个<strong>ForkJoinPool</strong>的四个线程全部<strong>Waiting</strong>在这一行：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">- waiting on &lt;<span class="number">0x00000006504b1610</span>&gt; (a io.netty.channel.DefaultChannelPromise)</span><br><span class="line">    at java.lang.Object.wait(Object.java:<span class="number">503</span>)</span><br><span class="line">    at io.netty.util.concurrent.DefaultPromise.awaitUninterruptibly(DefaultPromise.java:<span class="number">286</span>)</span><br><span class="line">    - locked &lt;<span class="number">0x00000006504b1610</span>&gt; (a io.netty.channel.DefaultChannelPromise)</span><br><span class="line">    at io.netty.channel.DefaultChannelPromise.awaitUninterruptibly(DefaultChannelPromise.java:<span class="number">135</span>)</span><br><span class="line">    at io.netty.channel.DefaultChannelPromise.awaitUninterruptibly(DefaultChannelPromise.java:<span class="number">28</span>)</span><br></pre></td></tr></table></figure>
+
+<p>根据代码上下文，这里是我们的一个<strong>RpcClient</strong>在建立连接，正在等待Netty回调连接成功与否，但是这个回调一直没有产生，就直接<strong>hang死</strong>在这里了。</p>
+<h4 id="分析Dump下来的内存找到泄漏原因"><a href="#分析Dump下来的内存找到泄漏原因" class="headerlink" title="分析Dump下来的内存找到泄漏原因"></a>分析Dump下来的内存找到泄漏原因</h4><p>打开<strong><a href="/2020/03/08/use-mat/">MAT</a></strong>分析Dump下来的内存，直接找到处于<strong>Waiting state</strong> 状态的<em>DefaultChannelPromise</em>对象，这个对象实际上是持有<strong>Netty</strong>的<strong>NioSocketChannel</strong>对象的，通过持有链，可以找到正在尝试连接的<strong>RpcServer</strong>的<strong>ip</strong>。沟通运维最近的操作得知，这个ip地址所在的机器A之前有一个正常的RpcServer，之后由于服务器资源调整，迁移到了另外一台服务器B，也就是说，泄漏的这个进程一直在尝试连接一个关掉的服务器A，随后<strong>hang死</strong>在awaitUninterruptibly。</p>
+<p>正常情况下，Netty client 链接一个不通的ip &amp; port，肯定是会回调唤醒等待在<em>DefaultChannelPromise</em>的线程的。为什么会无法唤醒呢？</p>
+<p>这个时候，旁边的同事看了业务代码，提示这个业务无法连通RpcServer的时候，会不断<strong>shutdown</strong>掉RpcClient，通过查看代码，发现这个shutdown操作，会把Netty的EventLoop给干掉。EventLoop都干掉了，自然没线程去跑<em>DefaultChannelPromise</em>的回调通知了。</p>
+<h4 id="捋清泄漏原因"><a href="#捋清泄漏原因" class="headerlink" title="捋清泄漏原因"></a>捋清泄漏原因</h4><ul>
+<li>A服务器迁移，原有IP失效</li>
+<li>有一个业务还有<strong>任务GG</strong>需要A服务器的依赖去执行，不断提交任务到ForkJoinPool</li>
+<li>ForkJoinPoll 中连接A服务器是同步等待的</li>
+<li>业务自身的线程没有做好这个状态检测，发现<strong>任务GG</strong>还没完成，竟然直接Shutdown掉上一次的<strong>RpcClient</strong>，然后再次提交一次新的任务到ForkJoinPool。如果提交和shutdown这个时候，ForJoinPoll上一次的任务正在await中，永远也没法唤醒了。</li>
+</ul>
+<h4 id="hang死复现"><a href="#hang死复现" class="headerlink" title="hang死复现"></a>hang死复现</h4><p>hang死并且造成泄漏的表面原因是业务流程本身有逻辑上的问题，但本质上是因为Netty的<strong>shutdownGracefully</strong>没有处理好所有的Future导致的，这个bug可以通过下面的代码很简单就复现：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">testNetty</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    ExecutorService executorService = Executors.newSingleThreadExecutor();</span><br><span class="line">    <span class="keyword">while</span> (<span class="keyword">true</span>) &#123;</span><br><span class="line">        <span class="keyword">final</span> Bootstrap bootstrap = <span class="keyword">new</span> Bootstrap();</span><br><span class="line">        <span class="keyword">final</span> NioEventLoopGroup group = <span class="keyword">new</span> NioEventLoopGroup(<span class="number">1</span>);</span><br><span class="line">        bootstrap.group(group);</span><br><span class="line">        bootstrap.channel(NioSocketChannel<span class="class">.<span class="keyword">class</span>)</span>;</span><br><span class="line">        bootstrap.option(ChannelOption.SO_KEEPALIVE, <span class="keyword">true</span>);</span><br><span class="line">        bootstrap.option(ChannelOption.CONNECT_TIMEOUT_MILLIS, <span class="number">1000</span>);</span><br><span class="line">        bootstrap.handler(<span class="keyword">new</span> ChannelInitializer&lt;SocketChannel&gt;() &#123;</span><br><span class="line">            <span class="meta">@Override</span></span><br><span class="line">            <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">initChannel</span><span class="params">(SocketChannel ch)</span> <span class="keyword">throws</span> Exception </span>&#123;</span><br><span class="line">                ch.pipeline().addLast(<span class="keyword">new</span> TimeClientHandler());</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;);</span><br><span class="line">        ChannelFuture connect = bootstrap.connect(<span class="string">"192.168.1.122"</span>, <span class="number">1343</span>);</span><br><span class="line">        executorService.submit(<span class="keyword">new</span> Runnable() &#123;</span><br><span class="line">            <span class="meta">@Override</span></span><br><span class="line">            <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">run</span><span class="params">()</span> </span>&#123;</span><br><span class="line">                group.shutdownGracefully();</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;);</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            connect.awaitUninterruptibly();</span><br><span class="line">        &#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">            e.printStackTrace();</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>代码在<strong>4.0.27.Final</strong>版本主线程会hang死，在最新的<strong>4.1.32.Final</strong>版本已经修复这个问题。</p>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
     <link itemprop="mainEntityOfPage" href="https://isenninha.github.io/2020/04/11/mysql-forcing-innodb-recovery/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -1477,7 +1644,7 @@
               
                 <a href="/archives">
               
-                  <span class="site-state-item-count">5</span>
+                  <span class="site-state-item-count">6</span>
                   <span class="site-state-item-name">posts</span>
                 </a>
               </div>
@@ -1499,7 +1666,7 @@
               
               <div class="site-state-item site-state-tags">
                 
-                  <span class="site-state-item-count">12</span>
+                  <span class="site-state-item-count">13</span>
                   <span class="site-state-item-name">tags</span>
                 
               </div>

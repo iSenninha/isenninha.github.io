@@ -2,6 +2,13 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   
   <url>
+    <loc>https://isenninha.github.io/2020/05/11/memory-leak-caused-by-netty/</loc>
+    
+    <lastmod>2020-05-11T06:51:38.594Z</lastmod>
+    
+  </url>
+  
+  <url>
     <loc>https://isenninha.github.io/2020/04/11/mysql-forcing-innodb-recovery/</loc>
     
     <lastmod>2020-04-11T08:55:07.670Z</lastmod>
