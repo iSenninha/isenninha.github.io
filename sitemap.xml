@@ -2,6 +2,13 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   
   <url>
+    <loc>https://isenninha.github.io/2020/11/12/http-client/</loc>
+    
+    <lastmod>2020-11-12T14:37:36.095Z</lastmod>
+    
+  </url>
+  
+  <url>
     <loc>https://isenninha.github.io/2020/05/11/memory-leak-caused-by-netty/</loc>
     
     <lastmod>2020-05-15T07:12:11.771Z</lastmod>

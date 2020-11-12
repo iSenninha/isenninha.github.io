@@ -252,6 +252,182 @@
   
   
   <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="https://isenninha.github.io/2020/11/12/http-client/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="senninha">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="senninha">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2020/11/12/http-client/" itemprop="url">Java Http Client 连接池复用研究</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2020-11-12T22:15:34+08:00">
+                2020-11-12
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/" itemprop="url" rel="index">
+                    <span itemprop="name">Java</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <p>项目中用到了apache的<em>httpclient</em>，使用了池化的<em>PoolingHttpClientConnectionManager</em>，研究了一下相关的实现以及JDK原生的<em>HttpURLConnection</em>的连接复用实现。</p>
+<h3 id="1-HttpClient"><a href="#1-HttpClient" class="headerlink" title="1.HttpClient"></a>1.HttpClient</h3><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line">public class TestHttpClient &#123;</span><br><span class="line">    private PoolingHttpClientConnectionManager pool;</span><br><span class="line"></span><br><span class="line">    @Before</span><br><span class="line">    public void init() &#123;</span><br><span class="line">        pool &#x3D; new PoolingHttpClientConnectionManager(10, TimeUnit.MILLISECONDS);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    public CloseableHttpClient getClient() &#123;</span><br><span class="line">        return HttpClientBuilder.create().setConnectionManager(pool).build();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    @Test</span><br><span class="line">    public void test() throws Exception &#123;</span><br><span class="line">        CloseableHttpResponse execute &#x3D; getClient().execute(new HttpGet(&quot;http:&#x2F;&#x2F;www.baidu.com&quot;));</span><br><span class="line">        System.out.println(EntityUtils.toString(execute.getEntity(), &quot;utf8&quot;));</span><br><span class="line">        execute &#x3D; getClient().execute(new HttpGet(&quot;http:&#x2F;&#x2F;www.baidu.com&quot;));</span><br><span class="line">        System.out.println(EntityUtils.toString(execute.getEntity(), &quot;utf8&quot;));</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>上面代码的两次http请求，会共用一个tcp连接请求。复用链接的过程主要是如下：</p>
+<ul>
+<li><em>PoolingHttpClientConnectionManager#requestConnection</em> 根据相同的route信息从连接池获取</li>
+<li>连接池为空或者没有空闲的连接，则会在<em>AbstractConnPool#getPoolEntryBlocking</em> 尝试新建，单个route最大连接可配置，默认值为<strong>2</strong>，若有空闲连接，则直接复用。</li>
+<li>使用完毕后，归还给连接池。</li>
+</ul>
+<p>下面主要捋清一下归还连接的过程以及连接保活的策略。</p>
+<h4 id="1-1-HttpClient-连接归还"><a href="#1-1-HttpClient-连接归还" class="headerlink" title="1.1 HttpClient 连接归还"></a>1.1 HttpClient 连接归还</h4><p><em>AbstractConnPool#release</em>中归还连接的代码如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line">public void release(final E entry, final boolean reusable) &#123;</span><br><span class="line">    this.lock.lock();</span><br><span class="line">    try &#123;</span><br><span class="line">        if (this.leased.remove(entry)) &#123;</span><br><span class="line">            final RouteSpecificPool&lt;T, C, E&gt; pool &#x3D; getPool(entry.getRoute());</span><br><span class="line">            pool.free(entry, reusable);</span><br><span class="line">            if (reusable &amp;&amp; !this.isShutDown) &#123;</span><br><span class="line">                this.available.addFirst(entry);</span><br><span class="line">            &#125; else &#123;</span><br><span class="line">                entry.close();</span><br><span class="line">            &#125;</span><br><span class="line">            onRelease(entry);</span><br><span class="line">            Future&lt;E&gt; future &#x3D; pool.nextPending();</span><br><span class="line">            if (future !&#x3D; null) &#123;</span><br><span class="line">                this.pending.remove(future);</span><br><span class="line">            &#125; else &#123;</span><br><span class="line">                future &#x3D; this.pending.poll();</span><br><span class="line">            &#125;</span><br><span class="line">            if (future !&#x3D; null) &#123;</span><br><span class="line">                this.condition.signalAll();</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125; finally &#123;</span><br><span class="line">        this.lock.unlock();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>那么问题来了，以上的示例代码哪一行会触发连接归还呢？没错，就是<strong>EntitysUtil#toString</strong>，官方<a href="https://hc.apache.org/httpcomponents-core-4.4.x/tutorial/html/fundamentals.html#d5e136" target="_blank" rel="noopener">tutorial</a>描述如下：</p>
+<blockquote>
+<p>When working with streaming entities, one can use the EntityUtils#consume(HttpEntity) method to ensure that the entity content has been fully consumed and the underlying stream has been closed.</p>
+</blockquote>
+<p>具体的调用堆栈如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">at org.apache.http.pool.AbstractConnPool.release(AbstractConnPool.java:409)</span><br><span class="line">	at org.apache.http.impl.conn.PoolingHttpClientConnectionManager.releaseConnection(PoolingHttpClientConnectionManager.java:347)</span><br><span class="line">	at org.apache.http.impl.execchain.ConnectionHolder.releaseConnection(ConnectionHolder.java:99)</span><br><span class="line">	at org.apache.http.impl.execchain.ConnectionHolder.releaseConnection(ConnectionHolder.java:120)</span><br><span class="line">	at org.apache.http.impl.execchain.ResponseEntityProxy.releaseConnection(ResponseEntityProxy.java:76)</span><br><span class="line">	at org.apache.http.impl.execchain.ResponseEntityProxy.streamClosed(ResponseEntityProxy.java:144)</span><br><span class="line">	at org.apache.http.conn.EofSensorInputStream.checkClose(EofSensorInputStream.java:228)</span><br><span class="line">	at org.apache.http.conn.EofSensorInputStream.close(EofSensorInputStream.java:172)</span><br><span class="line">	at java.util.zip.InflaterInputStream.close(InflaterInputStream.java:227)</span><br><span class="line">	at java.util.zip.GZIPInputStream.close(GZIPInputStream.java:136)</span><br><span class="line">	at org.apache.http.client.entity.LazyDecompressingInputStream.close(LazyDecompressingInputStream.java:94)</span><br><span class="line">	at org.apache.http.util.EntityUtils.toString(EntityUtils.java:232)</span><br><span class="line">	at org.apache.http.util.EntityUtils.toString(EntityUtils.java:270)</span><br><span class="line">	at org.apache.http.util.EntityUtils.toString(EntityUtils.java:290)</span><br></pre></td></tr></table></figure>
+<p>其实就是在本次http流读完后，自动归还给连接池。如果调用者不想获取对应的response body，归还连接则要调用这个方法归还连接:</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">execute.getEntity().getContent().close()</span><br></pre></td></tr></table></figure>
+
+<h4 id="1-2-拒绝归还连接"><a href="#1-2-拒绝归还连接" class="headerlink" title="1.2 拒绝归还连接"></a>1.2 拒绝归还连接</h4><p>如果不归还连接，会发生什么情况呢？还是上述代码，把归还连接相关的代码注释掉，重复发起请求：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">while (true) &#123;</span><br><span class="line">    CloseableHttpResponse execute &#x3D; getClient().execute(new HttpGet(&quot;http:&#x2F;&#x2F;www.baidu.com&quot;));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>代码直接<em>waiting</em>在如下堆栈：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line">&quot;main@1&quot; prio&#x3D;5 tid&#x3D;0x1 nid&#x3D;NA waiting</span><br><span class="line">  java.lang.Thread.State: WAITING</span><br><span class="line">	  at sun.misc.Unsafe.park(Unsafe.java:-1)</span><br><span class="line">	  at java.util.concurrent.locks.LockSupport.park(LockSupport.java:175)</span><br><span class="line">	  at java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.await(AbstractQueuedSynchronizer.java:2039)</span><br><span class="line">	  at org.apache.http.pool.AbstractConnPool.getPoolEntryBlocking(AbstractConnPool.java:379)</span><br><span class="line">	  at org.apache.http.pool.AbstractConnPool.access$200(AbstractConnPool.java:69)</span><br><span class="line">	  at org.apache.http.pool.AbstractConnPool$2.get(AbstractConnPool.java:245)</span><br><span class="line">	  - locked &lt;0x727&gt; (a org.apache.http.pool.AbstractConnPool$2)</span><br><span class="line">	  at org.apache.http.pool.AbstractConnPool$2.get(AbstractConnPool.java:193)</span><br><span class="line">	  at org.apache.http.impl.conn.PoolingHttpClientConnectionManager.leaseConnection(PoolingHttpClientConnectionManager.java:304)</span><br><span class="line">	  at org.apache.http.impl.conn.PoolingHttpClientConnectionManager$1.get(PoolingHttpClientConnectionManager.java:280)</span><br><span class="line">	  at org.apache.http.impl.execchain.MainClientExec.execute(MainClientExec.java:190)</span><br><span class="line">	  at org.apache.http.impl.execchain.ProtocolExec.execute(ProtocolExec.java:186)</span><br><span class="line">	  at org.apache.http.impl.execchain.RetryExec.execute(RetryExec.java:89)</span><br><span class="line">	  at org.apache.http.impl.execchain.RedirectExec.execute(RedirectExec.java:110)</span><br><span class="line">	  at org.apache.http.impl.client.InternalHttpClient.doExecute(InternalHttpClient.java:185)</span><br><span class="line">	  at org.apache.http.impl.client.CloseableHttpClient.execute(CloseableHttpClient.java:83)</span><br><span class="line">	  at org.apache.http.impl.client.CloseableHttpClient.execute(CloseableHttpClient.java:108)</span><br></pre></td></tr></table></figure>
+<p>查找对应的代码<strong>AbstractConnPool#getPoolEntryBlocking</strong>，可以看到hang死在等待连接池归还的状态下（上下文代码有点多，不贴了），可以看到，默认的阈值是<strong>maxPerRoute = 2</strong>，所以默认配置的情况下一旦大于等于2个连接未归还，接下去的请求全部都会hang死。</p>
+<h3 id="2-JDK-HttpURLConnection"><a href="#2-JDK-HttpURLConnection" class="headerlink" title="2. JDK HttpURLConnection"></a>2. JDK HttpURLConnection</h3><p>JDK 原生的<strong>HttpURLConnection</strong> 实际上默认也是支持池化的，下面是最简单的示例代码：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">public void testJDKHttp() throws Exception &#123;</span><br><span class="line">    URL url &#x3D; new URL(&quot;http:&#x2F;&#x2F;www.baidu.com&quot;);</span><br><span class="line">    HttpURLConnection urlConnection &#x3D; (HttpURLConnection) url.openConnection();</span><br><span class="line">    urlConnection.setRequestMethod(&quot;GET&quot;);</span><br><span class="line">    InputStream is &#x3D; urlConnection.getInputStream();</span><br><span class="line">    System.out.println(new String(IOUtils.readNBytesOrEOF(is, urlConnection.getContentLength())));</span><br><span class="line">    if (--recursiveDepth &gt; 0) &#123;</span><br><span class="line">        testJDKHttp();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>设置递归深度为2，即两次请求百度，实际上，这两次请求是同一个tcp连接去完成的。</p>
+<h4 id="2-1-JDK-HttpURLConnection-归还连接"><a href="#2-1-JDK-HttpURLConnection-归还连接" class="headerlink" title="2.1 JDK HttpURLConnection 归还连接"></a>2.1 JDK HttpURLConnection 归还连接</h4><p>归还连接的点与<em>HttpClient</em>类似，都是在流读完的时候归还给连接池，调用堆栈如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">at sun.net.www.http.KeepAliveCache.put(KeepAliveCache.java:80)</span><br><span class="line">at sun.net.www.http.HttpClient.putInKeepAliveCache(HttpClient.java:438)</span><br><span class="line">at sun.net.www.http.HttpClient.finished(HttpClient.java:395)</span><br><span class="line">at sun.net.www.http.KeepAliveStream.close(KeepAliveStream.java:97)</span><br><span class="line">at sun.net.www.MeteredStream.justRead(MeteredStream.java:93)</span><br><span class="line">at sun.net.www.MeteredStream.read(MeteredStream.java:135)</span><br><span class="line">at java.io.FilterInputStream.read(FilterInputStream.java:133)</span><br><span class="line">at sun.net.www.protocol.http.HttpURLConnection$HttpInputStream.read(HttpURLConnection.java:3454)</span><br><span class="line">at sun.misc.IOUtils.readNBytesOrEOF(IOUtils.java:91)</span><br></pre></td></tr></table></figure>
+<p><strong>KeepAliveCache</strong>就是连接池的实现，与<em>HttpClient<em>的lazy delete 策略不同，</em>JDK</em> 是启用一个定时器去处理过期连接的，<em>KeepAliveCache#put</em>：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">ThreadGroup var1 &#x3D; Thread.currentThread().getThreadGroup();</span><br><span class="line"></span><br><span class="line">for(ThreadGroup var2 &#x3D; null; (var2 &#x3D; var1.getParent()) !&#x3D; null; var1 &#x3D; var2) &#123;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">KeepAliveCache.this.keepAliveTimer &#x3D; new Thread(var1, KeepAliveCache.this, &quot;Keep-Alive-Timer&quot;);</span><br><span class="line">KeepAliveCache.this.keepAliveTimer.setDaemon(true);</span><br><span class="line">KeepAliveCache.this.keepAliveTimer.setPriority(8);</span><br><span class="line">KeepAliveCache.this.keepAliveTimer.setContextClassLoader((ClassLoader)null);</span><br><span class="line">KeepAliveCache.this.keepAliveTimer.start();</span><br><span class="line">return null;</span><br></pre></td></tr></table></figure>
+<p>从代码里可以看到，定时器5s检测一次。<em>keep-alive</em>的默认存活时间是<strong>5000ms</strong>，或者在response头通过<strong>Keep-Alive</strong> 指定。<br>所以，一般情况下，5秒内重复再次调用同一个url，那么会复用同一个连接。</p>
+<h4 id="2-2-JDK-HttpURLConnection-拒绝归还连接"><a href="#2-2-JDK-HttpURLConnection-拒绝归还连接" class="headerlink" title="2.2 JDK HttpURLConnection 拒绝归还连接"></a>2.2 JDK HttpURLConnection 拒绝归还连接</h4><p>HttpURLConnection 并没有一个连接限制，如果一直不归还连接，会一直创建，造成泄漏。</p>
+<h4 id="2-3-提前归还连接的策略"><a href="#2-3-提前归还连接的策略" class="headerlink" title="2.3 提前归还连接的策略"></a>2.3 提前归还连接的策略</h4><p>如果发起了一个请求，但是处于特殊的原因，response流没有读完，就想归还连接。<br><em>JDK</em> 会检测是否读完response，如果没有读完，会选择直接关掉这个连接。<br><em>HttpClient</em> 则会直接尝试读完response流，然后归还连接池。所以，如果存在不读取完整response流的情况，应该使用<strong>HEAD</strong>去预请求，而不是直接用<strong>GET</strong>浪费带宽。</p>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
     <link itemprop="mainEntityOfPage" href="https://isenninha.github.io/2020/05/11/memory-leak-caused-by-netty/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -1645,7 +1821,7 @@
               
                 <a href="/archives">
               
-                  <span class="site-state-item-count">6</span>
+                  <span class="site-state-item-count">7</span>
                   <span class="site-state-item-name">posts</span>
                 </a>
               </div>
@@ -1667,7 +1843,7 @@
               
               <div class="site-state-item site-state-tags">
                 
-                  <span class="site-state-item-count">13</span>
+                  <span class="site-state-item-count">14</span>
                   <span class="site-state-item-name">tags</span>
                 
               </div>
