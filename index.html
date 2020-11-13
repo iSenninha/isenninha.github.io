@@ -252,6 +252,167 @@
   
   
   <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="https://isenninha.github.io/2020/11/13/rsync-cannot-delete-directory-md/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="senninha">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="senninha">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2020/11/13/rsync-cannot-delete-directory-md/" itemprop="url">rsync--cannot delete non-empty directory</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2020-11-13T21:01:45+08:00">
+                2020-11-13
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Linux/" itemprop="url" rel="index">
+                    <span itemprop="name">Linux</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <h4 id="1-rsync-无法删除文件夹"><a href="#1-rsync-无法删除文件夹" class="headerlink" title="1.rsync 无法删除文件夹"></a>1.rsync 无法删除文件夹</h4><p>有一个同步服务一直报<em>cannot delete non-empty directory</em>错误，具体表现为<em>source_dir</em>删除了的文件夹，在<em>target_dir</em>无法删除。</p>
+<ul>
+<li>target_dir:<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">ideavim&#x2F;</span><br><span class="line">├── detekt</span><br><span class="line">├── doc</span><br><span class="line">├── gradle</span><br><span class="line">├── resourc</span><br></pre></td></tr></table></figure></li>
+<li>source_dir:<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">ideavim&#x2F;</span><br><span class="line">├── detekt</span><br><span class="line">├── doc</span><br><span class="line">├── gradle</span><br></pre></td></tr></table></figure>
+rsync 同步:<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">rsync -azv --delete -exclude-from&#x3D;&#x2F;tmp&#x2F;exlcude.txt source_dir target_dir</span><br></pre></td></tr></table></figure>
+然后就报这个错误了:<blockquote>
+<p>cannot delete non-empty directoryd: ideavim/resources</p>
+</blockquote>
+</li>
+</ul>
+<p>竟然删不掉，当即看了一下<em>exclude.txt</em>，过滤关键字也不会过滤到删不掉的文件夹。</p>
+<h4 id="2-解决方法"><a href="#2-解决方法" class="headerlink" title="2.解决方法"></a>2.解决方法</h4><p>谷歌搜了一圈，看到<a href="https://serverfault.com/questions/573392/rsync-cannot-delete-non-empty-directory-errors-even-with-force-option" target="_blank" rel="noopener">rsync-cannot-delete-non-empty-directory-errors-even-with-force-option</a></p>
+<blockquote>
+<p>Did you try to add –delete-excluded?</p>
+</blockquote>
+<p>果断加这个参数，再带上<strong>–dry-run</strong>参数执行，啊这，确实删掉了，还把我<em>exclude-from</em>的列表也给干掉了，没用。</p>
+<p>不对，突然灵光乍现，看一下要删掉的<em>resources</em>到底有啥玩意：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">ideavim&#x2F;resources&#x2F;</span><br><span class="line">├── messages.properties</span><br></pre></td></tr></table></figure>
+<p>好家伙，这个<strong>messages.properties</strong>，正好是<strong>exclude.txt</strong>的过滤关键字，果断干掉所有的<strong>properties</strong>文件，再次执行同步命令，ok！</p>
+<p>出现这个问题的原因是因为一开始过滤关键字并没有<em>properties</em>，所以把这个文件同步到了<em>target_dir</em>，后来加上了过滤关键字，就请神容易，送神难了。</p>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
     <link itemprop="mainEntityOfPage" href="https://isenninha.github.io/2020/11/12/http-client/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -1821,7 +1982,7 @@
               
                 <a href="/archives">
               
-                  <span class="site-state-item-count">7</span>
+                  <span class="site-state-item-count">8</span>
                   <span class="site-state-item-name">posts</span>
                 </a>
               </div>
@@ -1832,7 +1993,7 @@
               
               <div class="site-state-item site-state-categories">
                 <a href="/categories/index.html">
-                  <span class="site-state-item-count">4</span>
+                  <span class="site-state-item-count">5</span>
                   <span class="site-state-item-name">categories</span>
                 </a>
               </div>
@@ -1843,7 +2004,7 @@
               
               <div class="site-state-item site-state-tags">
                 
-                  <span class="site-state-item-count">14</span>
+                  <span class="site-state-item-count">15</span>
                   <span class="site-state-item-name">tags</span>
                 
               </div>
