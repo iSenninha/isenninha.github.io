@@ -79,17 +79,17 @@
 
 
 
-<meta name="description" content="1. 名词概念解释1.1 Shallow heap &amp;&amp; Retained Heapshallow是浅的意思，比如，一个ArrayList的浅占用仅仅是size,elementData[],modCount三个成员对象16个字节，加上引用8个字节，总共是24个字节。但是elementData才是冰山下的大头。retained直译是保留的意思，指的是某个对象所持有的所有对象（直接和间">
+<meta name="description" content="​    记录 Memory Anallyzer Tool 相关概念与使用。">
 <meta property="og:type" content="article">
 <meta property="og:title" content="Memory Analyzer使用">
 <meta property="og:url" content="https://isenninha.github.io/2020/03/08/use-mat/index.html">
-<meta property="og:site_name" content="senninha">
-<meta property="og:description" content="1. 名词概念解释1.1 Shallow heap &amp;&amp; Retained Heapshallow是浅的意思，比如，一个ArrayList的浅占用仅仅是size,elementData[],modCount三个成员对象16个字节，加上引用8个字节，总共是24个字节。但是elementData才是冰山下的大头。retained直译是保留的意思，指的是某个对象所持有的所有对象（直接和间">
+<meta property="og:site_name" content="Hexo">
+<meta property="og:description" content="​    记录 Memory Anallyzer Tool 相关概念与使用。">
 <meta property="og:locale">
 <meta property="og:image" content="https://isenninha.github.io/2020/03/08/use-mat/main_interface.png">
 <meta property="og:image" content="https://isenninha.github.io/2020/03/08/use-mat/overview_action.png">
 <meta property="article:published_time" content="2020-03-08T04:19:12.000Z">
-<meta property="article:modified_time" content="2020-03-08T08:28:49.000Z">
+<meta property="article:modified_time" content="2022-01-21T03:51:38.886Z">
 <meta property="article:author" content="senninha">
 <meta property="article:tag" content="Memory Leak">
 <meta property="article:tag" content="Mat">
@@ -131,7 +131,7 @@
 
 
 
-  <title>Memory Analyzer使用 | senninha</title>
+  <title>Memory Analyzer使用 | Hexo</title>
   
 
 
@@ -161,7 +161,7 @@
     <div class="custom-logo-site-title">
       <a href="/"  class="brand" rel="start">
         <span class="logo-line-before"><i></i></span>
-        <span class="site-title">senninha</span>
+        <span class="site-title">Hexo</span>
         <span class="logo-line-after"><i></i></span>
       </a>
     </div>
@@ -267,7 +267,7 @@
     </span>
 
     <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="senninha">
+      <meta itemprop="name" content="Hexo">
     </span>
 
     
@@ -347,7 +347,10 @@
       
 
       
-        <h4 id="1-名词概念解释"><a href="#1-名词概念解释" class="headerlink" title="1. 名词概念解释"></a>1. 名词概念解释</h4><h5 id="1-1-Shallow-heap-amp-amp-Retained-Heap"><a href="#1-1-Shallow-heap-amp-amp-Retained-Heap" class="headerlink" title="1.1 Shallow heap &amp;&amp; Retained Heap"></a>1.1 Shallow heap &amp;&amp; Retained Heap</h5><p>shallow是浅的意思，比如，一个ArrayList的浅占用仅仅是size,elementData[],modCount三个成员对象16个字节，加上引用8个字节，总共是24个字节。但是elementData才是冰山下的大头。retained直译是保留的意思，指的是某个对象所持有的所有对象（直接和间接）。某种意义上来说，reatined heap才是我们更加关注的对象。</p>
+        <p>​    记录 <strong>Memory Anallyzer Tool</strong> 相关概念与使用。</p>
+<span id="more"></span>
+
+<h4 id="1-名词概念解释"><a href="#1-名词概念解释" class="headerlink" title="1. 名词概念解释"></a>1. 名词概念解释</h4><h5 id="1-1-Shallow-heap-amp-amp-Retained-Heap"><a href="#1-1-Shallow-heap-amp-amp-Retained-Heap" class="headerlink" title="1.1 Shallow heap &amp;&amp; Retained Heap"></a>1.1 Shallow heap &amp;&amp; Retained Heap</h5><p>shallow是浅的意思，比如，一个ArrayList的浅占用仅仅是size,elementData[],modCount三个成员对象16个字节，加上引用8个字节，总共是24个字节。但是elementData才是冰山下的大头。retained直译是保留的意思，指的是某个对象所持有的所有对象（直接和间接）。某种意义上来说，reatined heap才是我们更加关注的对象。</p>
 <h5 id="1-2-Dominator-Tree"><a href="#1-2-Dominator-Tree" class="headerlink" title="1.2 Dominator Tree"></a>1.2 Dominator Tree</h5><p>Dominator Tree就是对象关系树，一个对象的所有子支配树对象，就是上面所说的retained heap。</p>
 <h5 id="1-3-Path-to-GC-Roots"><a href="#1-3-Path-to-GC-Roots" class="headerlink" title="1.3 Path to GC Roots"></a>1.3 Path to GC Roots</h5><p>通过分析gc roots可以确定某些对象无法回收的原因。</p>
 <h5 id="1-4-Outgoing-references-amp-amp-Incoming-references"><a href="#1-4-Outgoing-references-amp-amp-Incoming-references" class="headerlink" title="1.4 Outgoing references &amp;&amp; Incoming references"></a>1.4 Outgoing references &amp;&amp; Incoming references</h5><p>目标对象x，如果要查询x引用了谁，那么就是前者，如果要看x被谁引用，那么就是后者。</p>

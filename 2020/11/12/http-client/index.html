@@ -79,15 +79,15 @@
 
 
 
-<meta name="description" content="项目中用到了apache的httpclient，使用了池化的PoolingHttpClientConnectionManager，研究了一下相关的实现以及JDK原生的HttpURLConnection的连接复用实现。 1.HttpClient1234567891011121314151617181920public class TestHttpClient &amp;#123;    private Po">
+<meta name="description" content="​    项目中用到了apache的httpclient，使用了池化的PoolingHttpClientConnectionManager，研究了一下相关的实现以及JDK原生的HttpURLConnection 的连接复用实现。">
 <meta property="og:type" content="article">
 <meta property="og:title" content="Java Http Client 连接池复用研究">
 <meta property="og:url" content="https://isenninha.github.io/2020/11/12/http-client/index.html">
-<meta property="og:site_name" content="senninha">
-<meta property="og:description" content="项目中用到了apache的httpclient，使用了池化的PoolingHttpClientConnectionManager，研究了一下相关的实现以及JDK原生的HttpURLConnection的连接复用实现。 1.HttpClient1234567891011121314151617181920public class TestHttpClient &amp;#123;    private Po">
+<meta property="og:site_name" content="Hexo">
+<meta property="og:description" content="​    项目中用到了apache的httpclient，使用了池化的PoolingHttpClientConnectionManager，研究了一下相关的实现以及JDK原生的HttpURLConnection 的连接复用实现。">
 <meta property="og:locale">
 <meta property="article:published_time" content="2020-11-12T14:15:34.000Z">
-<meta property="article:modified_time" content="2020-11-12T14:37:36.000Z">
+<meta property="article:modified_time" content="2022-01-21T03:54:25.816Z">
 <meta property="article:author" content="senninha">
 <meta property="article:tag" content="HttpClient">
 <meta name="twitter:card" content="summary">
@@ -126,7 +126,7 @@
 
 
 
-  <title>Java Http Client 连接池复用研究 | senninha</title>
+  <title>Java Http Client 连接池复用研究 | Hexo</title>
   
 
 
@@ -156,7 +156,7 @@
     <div class="custom-logo-site-title">
       <a href="/"  class="brand" rel="start">
         <span class="logo-line-before"><i></i></span>
-        <span class="site-title">senninha</span>
+        <span class="site-title">Hexo</span>
         <span class="logo-line-after"><i></i></span>
       </a>
     </div>
@@ -262,7 +262,7 @@
     </span>
 
     <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="senninha">
+      <meta itemprop="name" content="Hexo">
     </span>
 
     
@@ -342,7 +342,9 @@
       
 
       
-        <p>项目中用到了apache的<em>httpclient</em>，使用了池化的<em>PoolingHttpClientConnectionManager</em>，研究了一下相关的实现以及JDK原生的<em>HttpURLConnection</em>的连接复用实现。</p>
+        <p>​    项目中用到了apache的<strong>httpclient</strong>，使用了池化的<strong>PoolingHttpClientConnectionManager</strong>，研究了一下相关的实现以及JDK原生的<strong>HttpURLConnection</strong> 的连接复用实现。</p>
+<span id="more"></span>
+
 <h3 id="1-HttpClient"><a href="#1-HttpClient" class="headerlink" title="1.HttpClient"></a>1.HttpClient</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line">public class TestHttpClient &#123;</span><br><span class="line">    private PoolingHttpClientConnectionManager pool;</span><br><span class="line"></span><br><span class="line">    @Before</span><br><span class="line">    public void init() &#123;</span><br><span class="line">        pool = new PoolingHttpClientConnectionManager(10, TimeUnit.MILLISECONDS);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    public CloseableHttpClient getClient() &#123;</span><br><span class="line">        return HttpClientBuilder.create().setConnectionManager(pool).build();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    @Test</span><br><span class="line">    public void test() throws Exception &#123;</span><br><span class="line">        CloseableHttpResponse execute = getClient().execute(new HttpGet(&quot;http://www.baidu.com&quot;));</span><br><span class="line">        System.out.println(EntityUtils.toString(execute.getEntity(), &quot;utf8&quot;));</span><br><span class="line">        execute = getClient().execute(new HttpGet(&quot;http://www.baidu.com&quot;));</span><br><span class="line">        System.out.println(EntityUtils.toString(execute.getEntity(), &quot;utf8&quot;));</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 <p>上面代码的两次http请求，会共用一个tcp连接请求。复用链接的过程主要是如下：</p>
 <ul>
