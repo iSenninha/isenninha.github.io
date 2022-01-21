@@ -1,37 +1,767 @@
-{% extends '_layout.swig' %}
-{% import '_macro/post.swig' as post_template %}
-{% import '_macro/sidebar.swig' as sidebar_template %}
+<!DOCTYPE html>
 
 
-{% block title %}{{ page.title }} | {{ config.title }}{% endblock %}
 
-{% block page_class %}page-post-detail{% endblock %}
+  
 
 
-{% block content %}
+<html class="theme-next gemini use-motion" lang="zh">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.4" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.4">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.4" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="HttpClient," />
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="项目中用到了apache的httpclient，使用了池化的PoolingHttpClientConnectionManager，研究了一下相关的实现以及JDK原生的HttpURLConnection的连接复用实现。 1.HttpClient1234567891011121314151617181920public class TestHttpClient &amp;#123;    private Po">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Java Http Client 连接池复用研究">
+<meta property="og:url" content="https://isenninha.github.io/2020/11/12/http-client/index.html">
+<meta property="og:site_name" content="senninha">
+<meta property="og:description" content="项目中用到了apache的httpclient，使用了池化的PoolingHttpClientConnectionManager，研究了一下相关的实现以及JDK原生的HttpURLConnection的连接复用实现。 1.HttpClient1234567891011121314151617181920public class TestHttpClient &amp;#123;    private Po">
+<meta property="og:locale">
+<meta property="article:published_time" content="2020-11-12T14:15:34.000Z">
+<meta property="article:modified_time" content="2020-11-12T14:37:36.000Z">
+<meta property="article:author" content="senninha">
+<meta property="article:tag" content="HttpClient">
+<meta name="twitter:card" content="summary">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '',
+    scheme: 'Gemini',
+    version: '5.1.4',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="https://isenninha.github.io/2020/11/12/http-client/"/>
+
+
+
+
+
+  <title>Java Http Client 连接池复用研究 | senninha</title>
+  
+
+
+
+
+
+
+
+
+<meta name="generator" content="Hexo 6.0.0"></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">senninha</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle">zeng haha</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-主页">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            主页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-分类">
+          <a href="/categories/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br />
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-归档">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-标签">
+          <a href="/tags/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br />
+            
+            标签
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
 
   <div id="posts" class="posts-expand">
-    {{ post_template.render(page) }}
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="https://isenninha.github.io/2020/11/12/http-client/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="senninha">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">Java Http Client 连接池复用研究</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2020-11-12T22:15:34+08:00">
+                2020-11-12
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/" itemprop="url" rel="index">
+                    <span itemprop="name">Java</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>项目中用到了apache的<em>httpclient</em>，使用了池化的<em>PoolingHttpClientConnectionManager</em>，研究了一下相关的实现以及JDK原生的<em>HttpURLConnection</em>的连接复用实现。</p>
+<h3 id="1-HttpClient"><a href="#1-HttpClient" class="headerlink" title="1.HttpClient"></a>1.HttpClient</h3><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line">public class TestHttpClient &#123;</span><br><span class="line">    private PoolingHttpClientConnectionManager pool;</span><br><span class="line"></span><br><span class="line">    @Before</span><br><span class="line">    public void init() &#123;</span><br><span class="line">        pool = new PoolingHttpClientConnectionManager(10, TimeUnit.MILLISECONDS);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    public CloseableHttpClient getClient() &#123;</span><br><span class="line">        return HttpClientBuilder.create().setConnectionManager(pool).build();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    @Test</span><br><span class="line">    public void test() throws Exception &#123;</span><br><span class="line">        CloseableHttpResponse execute = getClient().execute(new HttpGet(&quot;http://www.baidu.com&quot;));</span><br><span class="line">        System.out.println(EntityUtils.toString(execute.getEntity(), &quot;utf8&quot;));</span><br><span class="line">        execute = getClient().execute(new HttpGet(&quot;http://www.baidu.com&quot;));</span><br><span class="line">        System.out.println(EntityUtils.toString(execute.getEntity(), &quot;utf8&quot;));</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>上面代码的两次http请求，会共用一个tcp连接请求。复用链接的过程主要是如下：</p>
+<ul>
+<li><em>PoolingHttpClientConnectionManager#requestConnection</em> 根据相同的route信息从连接池获取</li>
+<li>连接池为空或者没有空闲的连接，则会在<em>AbstractConnPool#getPoolEntryBlocking</em> 尝试新建，单个route最大连接可配置，默认值为<strong>2</strong>，若有空闲连接，则直接复用。</li>
+<li>使用完毕后，归还给连接池。</li>
+</ul>
+<p>下面主要捋清一下归还连接的过程以及连接保活的策略。</p>
+<h4 id="1-1-HttpClient-连接归还"><a href="#1-1-HttpClient-连接归还" class="headerlink" title="1.1 HttpClient 连接归还"></a>1.1 HttpClient 连接归还</h4><p><em>AbstractConnPool#release</em>中归还连接的代码如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line">public void release(final E entry, final boolean reusable) &#123;</span><br><span class="line">    this.lock.lock();</span><br><span class="line">    try &#123;</span><br><span class="line">        if (this.leased.remove(entry)) &#123;</span><br><span class="line">            final RouteSpecificPool&lt;T, C, E&gt; pool = getPool(entry.getRoute());</span><br><span class="line">            pool.free(entry, reusable);</span><br><span class="line">            if (reusable &amp;&amp; !this.isShutDown) &#123;</span><br><span class="line">                this.available.addFirst(entry);</span><br><span class="line">            &#125; else &#123;</span><br><span class="line">                entry.close();</span><br><span class="line">            &#125;</span><br><span class="line">            onRelease(entry);</span><br><span class="line">            Future&lt;E&gt; future = pool.nextPending();</span><br><span class="line">            if (future != null) &#123;</span><br><span class="line">                this.pending.remove(future);</span><br><span class="line">            &#125; else &#123;</span><br><span class="line">                future = this.pending.poll();</span><br><span class="line">            &#125;</span><br><span class="line">            if (future != null) &#123;</span><br><span class="line">                this.condition.signalAll();</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125; finally &#123;</span><br><span class="line">        this.lock.unlock();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>那么问题来了，以上的示例代码哪一行会触发连接归还呢？没错，就是<strong>EntitysUtil#toString</strong>，官方<a target="_blank" rel="noopener" href="https://hc.apache.org/httpcomponents-core-4.4.x/tutorial/html/fundamentals.html#d5e136">tutorial</a>描述如下：</p>
+<blockquote>
+<p>When working with streaming entities, one can use the EntityUtils#consume(HttpEntity) method to ensure that the entity content has been fully consumed and the underlying stream has been closed.</p>
+</blockquote>
+<p>具体的调用堆栈如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">at org.apache.http.pool.AbstractConnPool.release(AbstractConnPool.java:409)</span><br><span class="line">	at org.apache.http.impl.conn.PoolingHttpClientConnectionManager.releaseConnection(PoolingHttpClientConnectionManager.java:347)</span><br><span class="line">	at org.apache.http.impl.execchain.ConnectionHolder.releaseConnection(ConnectionHolder.java:99)</span><br><span class="line">	at org.apache.http.impl.execchain.ConnectionHolder.releaseConnection(ConnectionHolder.java:120)</span><br><span class="line">	at org.apache.http.impl.execchain.ResponseEntityProxy.releaseConnection(ResponseEntityProxy.java:76)</span><br><span class="line">	at org.apache.http.impl.execchain.ResponseEntityProxy.streamClosed(ResponseEntityProxy.java:144)</span><br><span class="line">	at org.apache.http.conn.EofSensorInputStream.checkClose(EofSensorInputStream.java:228)</span><br><span class="line">	at org.apache.http.conn.EofSensorInputStream.close(EofSensorInputStream.java:172)</span><br><span class="line">	at java.util.zip.InflaterInputStream.close(InflaterInputStream.java:227)</span><br><span class="line">	at java.util.zip.GZIPInputStream.close(GZIPInputStream.java:136)</span><br><span class="line">	at org.apache.http.client.entity.LazyDecompressingInputStream.close(LazyDecompressingInputStream.java:94)</span><br><span class="line">	at org.apache.http.util.EntityUtils.toString(EntityUtils.java:232)</span><br><span class="line">	at org.apache.http.util.EntityUtils.toString(EntityUtils.java:270)</span><br><span class="line">	at org.apache.http.util.EntityUtils.toString(EntityUtils.java:290)</span><br></pre></td></tr></table></figure>
+<p>其实就是在本次http流读完后，自动归还给连接池。如果调用者不想获取对应的response body，归还连接则要调用这个方法归还连接:</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">execute.getEntity().getContent().close()</span><br></pre></td></tr></table></figure>
+
+<h4 id="1-2-拒绝归还连接"><a href="#1-2-拒绝归还连接" class="headerlink" title="1.2 拒绝归还连接"></a>1.2 拒绝归还连接</h4><p>如果不归还连接，会发生什么情况呢？还是上述代码，把归还连接相关的代码注释掉，重复发起请求：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">while (true) &#123;</span><br><span class="line">    CloseableHttpResponse execute = getClient().execute(new HttpGet(&quot;http://www.baidu.com&quot;));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>代码直接<em>waiting</em>在如下堆栈：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line">&quot;main@1&quot; prio=5 tid=0x1 nid=NA waiting</span><br><span class="line">  java.lang.Thread.State: WAITING</span><br><span class="line">	  at sun.misc.Unsafe.park(Unsafe.java:-1)</span><br><span class="line">	  at java.util.concurrent.locks.LockSupport.park(LockSupport.java:175)</span><br><span class="line">	  at java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.await(AbstractQueuedSynchronizer.java:2039)</span><br><span class="line">	  at org.apache.http.pool.AbstractConnPool.getPoolEntryBlocking(AbstractConnPool.java:379)</span><br><span class="line">	  at org.apache.http.pool.AbstractConnPool.access$200(AbstractConnPool.java:69)</span><br><span class="line">	  at org.apache.http.pool.AbstractConnPool$2.get(AbstractConnPool.java:245)</span><br><span class="line">	  - locked &lt;0x727&gt; (a org.apache.http.pool.AbstractConnPool$2)</span><br><span class="line">	  at org.apache.http.pool.AbstractConnPool$2.get(AbstractConnPool.java:193)</span><br><span class="line">	  at org.apache.http.impl.conn.PoolingHttpClientConnectionManager.leaseConnection(PoolingHttpClientConnectionManager.java:304)</span><br><span class="line">	  at org.apache.http.impl.conn.PoolingHttpClientConnectionManager$1.get(PoolingHttpClientConnectionManager.java:280)</span><br><span class="line">	  at org.apache.http.impl.execchain.MainClientExec.execute(MainClientExec.java:190)</span><br><span class="line">	  at org.apache.http.impl.execchain.ProtocolExec.execute(ProtocolExec.java:186)</span><br><span class="line">	  at org.apache.http.impl.execchain.RetryExec.execute(RetryExec.java:89)</span><br><span class="line">	  at org.apache.http.impl.execchain.RedirectExec.execute(RedirectExec.java:110)</span><br><span class="line">	  at org.apache.http.impl.client.InternalHttpClient.doExecute(InternalHttpClient.java:185)</span><br><span class="line">	  at org.apache.http.impl.client.CloseableHttpClient.execute(CloseableHttpClient.java:83)</span><br><span class="line">	  at org.apache.http.impl.client.CloseableHttpClient.execute(CloseableHttpClient.java:108)</span><br></pre></td></tr></table></figure>
+<p>查找对应的代码<strong>AbstractConnPool#getPoolEntryBlocking</strong>，可以看到hang死在等待连接池归还的状态下（上下文代码有点多，不贴了），可以看到，默认的阈值是<strong>maxPerRoute = 2</strong>，所以默认配置的情况下一旦大于等于2个连接未归还，接下去的请求全部都会hang死。</p>
+<h3 id="2-JDK-HttpURLConnection"><a href="#2-JDK-HttpURLConnection" class="headerlink" title="2. JDK HttpURLConnection"></a>2. JDK HttpURLConnection</h3><p>JDK 原生的<strong>HttpURLConnection</strong> 实际上默认也是支持池化的，下面是最简单的示例代码：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">public void testJDKHttp() throws Exception &#123;</span><br><span class="line">    URL url = new URL(&quot;http://www.baidu.com&quot;);</span><br><span class="line">    HttpURLConnection urlConnection = (HttpURLConnection) url.openConnection();</span><br><span class="line">    urlConnection.setRequestMethod(&quot;GET&quot;);</span><br><span class="line">    InputStream is = urlConnection.getInputStream();</span><br><span class="line">    System.out.println(new String(IOUtils.readNBytesOrEOF(is, urlConnection.getContentLength())));</span><br><span class="line">    if (--recursiveDepth &gt; 0) &#123;</span><br><span class="line">        testJDKHttp();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>设置递归深度为2，即两次请求百度，实际上，这两次请求是同一个tcp连接去完成的。</p>
+<h4 id="2-1-JDK-HttpURLConnection-归还连接"><a href="#2-1-JDK-HttpURLConnection-归还连接" class="headerlink" title="2.1 JDK HttpURLConnection 归还连接"></a>2.1 JDK HttpURLConnection 归还连接</h4><p>归还连接的点与<em>HttpClient</em>类似，都是在流读完的时候归还给连接池，调用堆栈如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">at sun.net.www.http.KeepAliveCache.put(KeepAliveCache.java:80)</span><br><span class="line">at sun.net.www.http.HttpClient.putInKeepAliveCache(HttpClient.java:438)</span><br><span class="line">at sun.net.www.http.HttpClient.finished(HttpClient.java:395)</span><br><span class="line">at sun.net.www.http.KeepAliveStream.close(KeepAliveStream.java:97)</span><br><span class="line">at sun.net.www.MeteredStream.justRead(MeteredStream.java:93)</span><br><span class="line">at sun.net.www.MeteredStream.read(MeteredStream.java:135)</span><br><span class="line">at java.io.FilterInputStream.read(FilterInputStream.java:133)</span><br><span class="line">at sun.net.www.protocol.http.HttpURLConnection$HttpInputStream.read(HttpURLConnection.java:3454)</span><br><span class="line">at sun.misc.IOUtils.readNBytesOrEOF(IOUtils.java:91)</span><br></pre></td></tr></table></figure>
+<p><strong>KeepAliveCache</strong>就是连接池的实现，与<em>HttpClient<em>的lazy delete 策略不同，</em>JDK</em> 是启用一个定时器去处理过期连接的，<em>KeepAliveCache#put</em>：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">ThreadGroup var1 = Thread.currentThread().getThreadGroup();</span><br><span class="line"></span><br><span class="line">for(ThreadGroup var2 = null; (var2 = var1.getParent()) != null; var1 = var2) &#123;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">KeepAliveCache.this.keepAliveTimer = new Thread(var1, KeepAliveCache.this, &quot;Keep-Alive-Timer&quot;);</span><br><span class="line">KeepAliveCache.this.keepAliveTimer.setDaemon(true);</span><br><span class="line">KeepAliveCache.this.keepAliveTimer.setPriority(8);</span><br><span class="line">KeepAliveCache.this.keepAliveTimer.setContextClassLoader((ClassLoader)null);</span><br><span class="line">KeepAliveCache.this.keepAliveTimer.start();</span><br><span class="line">return null;</span><br></pre></td></tr></table></figure>
+<p>从代码里可以看到，定时器5s检测一次。<em>keep-alive</em>的默认存活时间是<strong>5000ms</strong>，或者在response头通过<strong>Keep-Alive</strong> 指定。<br>所以，一般情况下，5秒内重复再次调用同一个url，那么会复用同一个连接。</p>
+<h4 id="2-2-JDK-HttpURLConnection-拒绝归还连接"><a href="#2-2-JDK-HttpURLConnection-拒绝归还连接" class="headerlink" title="2.2 JDK HttpURLConnection 拒绝归还连接"></a>2.2 JDK HttpURLConnection 拒绝归还连接</h4><p>HttpURLConnection 并没有一个连接限制，如果一直不归还连接，会一直创建，造成泄漏。</p>
+<h4 id="2-3-提前归还连接的策略"><a href="#2-3-提前归还连接的策略" class="headerlink" title="2.3 提前归还连接的策略"></a>2.3 提前归还连接的策略</h4><p>如果发起了一个请求，但是处于特殊的原因，response流没有读完，就想归还连接。<br><em>JDK</em> 会检测是否读完response，如果没有读完，会选择直接关掉这个连接。<br><em>HttpClient</em> 则会直接尝试读完response流，然后归还连接池。所以，如果存在不读取完整response流的情况，应该使用<strong>HEAD</strong>去预请求，而不是直接用<strong>GET</strong>浪费带宽。</p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/HttpClient/" rel="tag"># HttpClient</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2020/05/11/memory-leak-caused-by-netty/" rel="next" title="Netty shutdownGracefully 处理缺陷导致的内存泄漏">
+                <i class="fa fa-chevron-left"></i> Netty shutdownGracefully 处理缺陷导致的内存泄漏
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2020/11/13/rsync-cannot-delete-directory-md/" rel="prev" title="rsync--cannot delete non-empty directory">
+                rsync--cannot delete non-empty directory <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
 
     <div class="post-spread">
-      {% if theme.jiathis %}
-        {% include '_partials/share/jiathis.swig' %}
-      {% elseif theme.baidushare %}
-        {% include '_partials/share/baidushare.swig' %}
-      {% elseif theme.add_this_id %}
-        {% include '_partials/share/add-this.swig' %}
-      {% elseif theme.duoshuo_shortname and theme.duoshuo_share %}
-        {% include '_partials/share/duoshuo_share.swig' %}
-      {% endif %}
+      
     </div>
   </div>
 
-{% endblock %}
 
-{% block sidebar %}
-  {{ sidebar_template.render(true) }}
-{% endblock %}
+          </div>
+          
 
-{% block script_extra %}
-  {% include '_scripts/pages/post-details.swig' %}
-{% endblock %}
+
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            Table of Contents
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            Overview
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name"></p>
+              <p class="site-description motion-element" itemprop="description"></p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives">
+              
+                  <span class="site-state-item-count">10</span>
+                  <span class="site-state-item-name">posts</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-categories">
+                <a href="/categories/index.html">
+                  <span class="site-state-item-count">5</span>
+                  <span class="site-state-item-name">categories</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                
+                  <span class="site-state-item-count">21</span>
+                  <span class="site-state-item-name">tags</span>
+                
+              </div>
+            
+
+          </nav>
+
+          
+
+          
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-HttpClient"><span class="nav-number">1.</span> <span class="nav-text">1.HttpClient</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#1-1-HttpClient-%E8%BF%9E%E6%8E%A5%E5%BD%92%E8%BF%98"><span class="nav-number">1.1.</span> <span class="nav-text">1.1 HttpClient 连接归还</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#1-2-%E6%8B%92%E7%BB%9D%E5%BD%92%E8%BF%98%E8%BF%9E%E6%8E%A5"><span class="nav-number">1.2.</span> <span class="nav-text">1.2 拒绝归还连接</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-JDK-HttpURLConnection"><span class="nav-number">2.</span> <span class="nav-text">2. JDK HttpURLConnection</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#2-1-JDK-HttpURLConnection-%E5%BD%92%E8%BF%98%E8%BF%9E%E6%8E%A5"><span class="nav-number">2.1.</span> <span class="nav-text">2.1 JDK HttpURLConnection 归还连接</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-2-JDK-HttpURLConnection-%E6%8B%92%E7%BB%9D%E5%BD%92%E8%BF%98%E8%BF%9E%E6%8E%A5"><span class="nav-number">2.2.</span> <span class="nav-text">2.2 JDK HttpURLConnection 拒绝归还连接</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-3-%E6%8F%90%E5%89%8D%E5%BD%92%E8%BF%98%E8%BF%9E%E6%8E%A5%E7%9A%84%E7%AD%96%E7%95%A5"><span class="nav-number">2.3.</span> <span class="nav-text">2.3 提前归还连接的策略</span></a></li></ol></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2022</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">senninha</span>
+
+  
+</div>
+
+
+  <div class="powered-by">Powered by <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a></div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">Theme &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Gemini</a> v5.1.4</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.4"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.1.4"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.4"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

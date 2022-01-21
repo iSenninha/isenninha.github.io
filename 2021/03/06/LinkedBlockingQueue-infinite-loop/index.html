@@ -1,37 +1,768 @@
-{% extends '_layout.swig' %}
-{% import '_macro/post.swig' as post_template %}
-{% import '_macro/sidebar.swig' as sidebar_template %}
+<!DOCTYPE html>
 
 
-{% block title %}{{ page.title }} | {{ config.title }}{% endblock %}
 
-{% block page_class %}page-post-detail{% endblock %}
+  
 
 
-{% block content %}
+<html class="theme-next gemini use-motion" lang="zh">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.4" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.4">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.4" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="LinkedBlockingQueue,Infinite loop,Dead lock," />
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="​    上线前压测发现业务线程 hang 死在 LinkedBlockingQueue，同时另外一条线程在 LinkedBlockingQueue.forEach() 中死循环了。看来是触发了 JDK(1.8.0_261) 的 bug。 定位 BugDump 线程栈找到死循环点Dump 下线程，找到死循环的堆栈如下： 1234&quot;b-thread-1@1&quot; prio&#x3D;5 tid">
+<meta property="og:type" content="article">
+<meta property="og:title" content="LinkedBlockingQueue 死循环">
+<meta property="og:url" content="https://isenninha.github.io/2021/03/06/LinkedBlockingQueue-infinite-loop/index.html">
+<meta property="og:site_name" content="senninha">
+<meta property="og:description" content="​    上线前压测发现业务线程 hang 死在 LinkedBlockingQueue，同时另外一条线程在 LinkedBlockingQueue.forEach() 中死循环了。看来是触发了 JDK(1.8.0_261) 的 bug。 定位 BugDump 线程栈找到死循环点Dump 下线程，找到死循环的堆栈如下： 1234&quot;b-thread-1@1&quot; prio&#x3D;5 tid">
+<meta property="og:locale">
+<meta property="article:published_time" content="2021-03-06T02:55:20.000Z">
+<meta property="article:modified_time" content="2021-03-06T07:43:32.000Z">
+<meta property="article:author" content="senninha">
+<meta property="article:tag" content="LinkedBlockingQueue">
+<meta property="article:tag" content="Infinite loop">
+<meta property="article:tag" content="Dead lock">
+<meta name="twitter:card" content="summary">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '',
+    scheme: 'Gemini',
+    version: '5.1.4',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="https://isenninha.github.io/2021/03/06/LinkedBlockingQueue-infinite-loop/"/>
+
+
+
+
+
+  <title>LinkedBlockingQueue 死循环 | senninha</title>
+  
+
+
+
+
+
+
+
+
+<meta name="generator" content="Hexo 6.0.0"></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">senninha</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle">zeng haha</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-主页">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            主页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-分类">
+          <a href="/categories/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br />
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-归档">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-标签">
+          <a href="/tags/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br />
+            
+            标签
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
 
   <div id="posts" class="posts-expand">
-    {{ post_template.render(page) }}
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="https://isenninha.github.io/2021/03/06/LinkedBlockingQueue-infinite-loop/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="senninha">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">LinkedBlockingQueue 死循环</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2021-03-06T10:55:20+08:00">
+                2021-03-06
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/" itemprop="url" rel="index">
+                    <span itemprop="name">Java</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>​    上线前压测发现业务线程 hang 死在 LinkedBlockingQueue，同时另外一条线程在 LinkedBlockingQueue.forEach() 中死循环了。看来是触发了 JDK(1.8.0_261) 的 bug。</p>
+<h4 id="定位-Bug"><a href="#定位-Bug" class="headerlink" title="定位 Bug"></a>定位 Bug</h4><h5 id="Dump-线程栈找到死循环点"><a href="#Dump-线程栈找到死循环点" class="headerlink" title="Dump 线程栈找到死循环点"></a>Dump 线程栈找到死循环点</h5><p>Dump 下线程，找到死循环的堆栈如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">&quot;b-thread-1@1&quot; prio=5 tid=0x1 nid=NA runnable</span><br><span class="line">  java.lang.Thread.State: RUNNABLE</span><br><span class="line">	  at java.util.concurrent.LinkedBlockingQueue$LBQSpliterator.forEachRemaining(LinkedBlockingQueue.java:926)</span><br><span class="line">	  at java.util.stream.ReferencePipeline$Head.forEach(ReferencePipeline.java:580)</span><br></pre></td></tr></table></figure>
+
+<p>对应的代码如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line">public void forEachRemaining(Consumer&lt;? super E&gt; action) &#123;</span><br><span class="line">    if (action == null) throw new NullPointerException();</span><br><span class="line">    final LinkedBlockingQueue&lt;E&gt; q = this.queue;</span><br><span class="line">    if (!exhausted) &#123;</span><br><span class="line">        exhausted = true;</span><br><span class="line">        Node&lt;E&gt; p = current;</span><br><span class="line">        do &#123;</span><br><span class="line">            E e = null;</span><br><span class="line">            q.fullyLock();              // 获取锁</span><br><span class="line">            try &#123;</span><br><span class="line">                if (p == null)</span><br><span class="line">                    p = q.head.next;</span><br><span class="line">                while (p != null) &#123;</span><br><span class="line">                    e = p.item;         // 在这里死循环了</span><br><span class="line">                    p = p.next;</span><br><span class="line">                    if (e != null)</span><br><span class="line">                        break;</span><br><span class="line">                &#125;</span><br><span class="line">            &#125; finally &#123;</span><br><span class="line">                q.fullyUnlock();</span><br><span class="line">            &#125;</span><br><span class="line">            if (e != null)</span><br><span class="line">                action.accept(e);</span><br><span class="line">        &#125; while (p != null);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+
+<h5 id="分析死循环原因"><a href="#分析死循环原因" class="headerlink" title="分析死循环原因"></a>分析死循环原因</h5><p>​    LinkedBlockingQueue 是基于链表实现的阻塞队列，根据死循环点的代码，猜测是跟 HashMap 一样由于自身成环无法退出循环条件。开发环境随便模拟了一下多个线程读写的情况，果然出现了死循环的情况，打个断点看内存，真的是自身成环了。<br>接下来查找何处代码会导致自身循环，dequeue的实现逻辑会把出队的节点设置成自身成环 <em>help gc</em>：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">private E dequeue() &#123;</span><br><span class="line">    // assert takeLock.isHeldByCurrentThread();</span><br><span class="line">    // assert head.item == null;</span><br><span class="line">    Node&lt;E&gt; h = head;</span><br><span class="line">    Node&lt;E&gt; first = h.next;</span><br><span class="line">    h.next = h; // help GC</span><br><span class="line">    head = first;</span><br><span class="line">    E x = first.item;</span><br><span class="line">    first.item = null;</span><br><span class="line">    return x;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>​    但是问题是调用 <em>dequeue</em> 的上层代码是加了锁的，<em>forEachRemaining</em> 也是加了锁的，产生并发的点是哪里呢？<br>​    回过头再来看 <em>forEachRemaining</em> 的代码逻辑，这个方法是 JDK8 为了支持 <em>Stream</em> 新增的代码，其逻辑是先获取 <em>fullyLock*，拿到节点的 item，然后释放锁，执行 *accept</em> 逻辑处理节点内容，然后继续执行以上步骤直到节点都遍历完成。<br>乍一看代码逻辑严谨，但是有个变量 <em>p</em> 在释放锁后逸出，并且在重新获取锁后没有去判断这个引用指向的对象是否安全。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line">public void forEachRemaining(Consumer&lt;? super E&gt; action) &#123;</span><br><span class="line">    if (action == null) throw new NullPointerException();</span><br><span class="line">    final LinkedBlockingQueue&lt;E&gt; q = this.queue;</span><br><span class="line">    if (!exhausted) &#123;</span><br><span class="line">        exhausted = true;</span><br><span class="line">        Node&lt;E&gt; p = current;        // 变量 p 逸出</span><br><span class="line">        do &#123;</span><br><span class="line">            E e = null;</span><br><span class="line">            q.fullyLock();</span><br><span class="line">            try &#123;</span><br><span class="line">                if (p == null)</span><br><span class="line">                    p = q.head.next;</span><br><span class="line">                while (p != null) &#123;</span><br><span class="line">                    e = p.item;</span><br><span class="line">                    p = p.next;</span><br><span class="line">                    if (e != null)</span><br><span class="line">                        break;</span><br><span class="line">                &#125;</span><br><span class="line">            &#125; finally &#123;</span><br><span class="line">                q.fullyUnlock();</span><br><span class="line">            &#125;</span><br><span class="line">            if (e != null)</span><br><span class="line">                action.accept(e);</span><br><span class="line">        &#125; while (p != null);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h5 id="精准复现-Bug"><a href="#精准复现-Bug" class="headerlink" title="精准复现 Bug"></a>精准复现 Bug</h5><p>根据 <em>dequeue</em> 与 <em>forEachRemaining</em> 的代码分析，产生死循环的条件如下：</p>
+<ul>
+<li>队列中要 &gt;= 3个元素</li>
+<li><em>forEachRemaining</em> 逻辑先 获取锁-&gt; 释放锁，变量 <em>p</em> (即队列中第二个元素的引用) 逃逸出来，与此同时，另外一个线程马上取出队列中的所有元素。</li>
+</ul>
+<p>满足以上条件时候，逃逸出锁的变量 <em>p</em> 就会自身成环，继续执行 <em>forEachRemaining</em> 就进入死循环了。<br>ps: 为什么必须要 <strong>&gt;=3</strong> 个元素呢？因为 <em>dequeue</em> 的出队逻辑是把当前要出队的节点 item 置为 null，然后把它作为 head，原有的 head 节点自身成环，废弃掉。所以必须是成为过 head 节点，然后又被废弃的节点，同时还被 <em>forEachRemaining</em> 逃逸引用的节点才能满足死循环的条件。</p>
+<p>精确复现代码如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line">public void testLBQInfiniteLoop() &#123;</span><br><span class="line">    final LinkedBlockingQueue&lt;Integer&gt; queue = new LinkedBlockingQueue&lt;&gt;();</span><br><span class="line">    queue.add(1);queue.add(2);queue.add(3);</span><br><span class="line">    final Object notify = new Object();</span><br><span class="line">    new Thread(() -&gt; &#123;</span><br><span class="line">        synchronized (notify) &#123;</span><br><span class="line">            try &#123;</span><br><span class="line">                notify.wait();</span><br><span class="line">                System.out.println(&quot;Start to take.&quot;);</span><br><span class="line">                queue.take();queue.take();queue.take();</span><br><span class="line">                System.out.println(&quot;Take all.&quot;);</span><br><span class="line">            &#125; catch (InterruptedException e) &#123;</span><br><span class="line">                e.printStackTrace();</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;).start();</span><br><span class="line">    queue.stream().forEach(e -&gt; &#123;</span><br><span class="line">        synchronized (notify) &#123;</span><br><span class="line">            notify.notifyAll();</span><br><span class="line">            System.out.println(&quot;Notify to start take.&quot;);</span><br><span class="line">        &#125;</span><br><span class="line">        System.out.println(&quot;Time consuming operation.&quot; + e);</span><br><span class="line">        try &#123;</span><br><span class="line">            Thread.sleep(1000);</span><br><span class="line">        &#125; catch (InterruptedException interruptedException) &#123;</span><br><span class="line">            interruptedException.printStackTrace();</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h4 id="修复-Bug"><a href="#修复-Bug" class="headerlink" title="修复 Bug"></a>修复 Bug</h4><p>​    以上已经分析了 bug 的原因，需要处理的是 <em>forEachRemaining</em> 中锁外逸出的变量的不安全使用。直接看一下新版的 JDK 是否有修复这个 bug。<br>切换 JDK 到 -&gt; <em>11.0.5</em>，跑测试用例，用例正常结束，再来看相关逻辑的修改：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line">void forEachFrom(Consumer&lt;? super E&gt; action, Node&lt;E&gt; p) &#123;</span><br><span class="line">    // Extract batches of elements while holding the lock; then</span><br><span class="line">    // run the action on the elements while not</span><br><span class="line">    final int batchSize = 64;       // max number of elements per batch</span><br><span class="line">    Object[] es = null;             // container for batch of elements</span><br><span class="line">    int n, len = 0;</span><br><span class="line">    do &#123;</span><br><span class="line">        fullyLock();</span><br><span class="line">        try &#123;</span><br><span class="line">            if (es == null) &#123;</span><br><span class="line">                if (p == null) p = head.next;</span><br><span class="line">                for (Node&lt;E&gt; q = p; q != null; q = succ(q))</span><br><span class="line">                    if (q.item != null &amp;&amp; ++len == batchSize)</span><br><span class="line">                        break;</span><br><span class="line">                es = new Object[len];</span><br><span class="line">            &#125;</span><br><span class="line">            for (n = 0; p != null &amp;&amp; n &lt; len; p = succ(p))</span><br><span class="line">                if ((es[n] = p.item) != null)</span><br><span class="line">                    n++;</span><br><span class="line">        &#125; finally &#123;</span><br><span class="line">            fullyUnlock();</span><br><span class="line">        &#125;</span><br><span class="line">        for (int i = 0; i &lt; n; i++) &#123;</span><br><span class="line">            @SuppressWarnings(&quot;unchecked&quot;) E e = (E) es[i];</span><br><span class="line">            action.accept(e);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125; while (n &gt; 0 &amp;&amp; p != null);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>​    首先，已经修改成批量取出到数组(batchSize = 64)进行 <em>accept</em> 逻辑，避免高并发下频繁获取，释放锁造成的竞争，但是同时变量 <em>p</em> 依然是在锁是否后逸出的啊，为什么用例不会产生死循环了呢？</p>
+<p>再来看 <em>succ</em>的逻辑：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">Node&lt;E&gt; succ(Node&lt;E&gt; p) &#123;</span><br><span class="line">    if (p == (p = p.next))</span><br><span class="line">        p = head.next;</span><br><span class="line">    return p;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>原来是在这里，当发现 <em>p</em> 在释放锁期间成环，从头部重新获取队列头元素。搞定，bug 修复。</p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/LinkedBlockingQueue/" rel="tag"># LinkedBlockingQueue</a>
+          
+            <a href="/tags/Infinite-loop/" rel="tag"># Infinite loop</a>
+          
+            <a href="/tags/Dead-lock/" rel="tag"># Dead lock</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2020/11/13/rsync-cannot-delete-directory-md/" rel="next" title="rsync--cannot delete non-empty directory">
+                <i class="fa fa-chevron-left"></i> rsync--cannot delete non-empty directory
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2022/01/20/volatile/" rel="prev" title="从 volatile 到 TSO - 内存可见性问题浅析">
+                从 volatile 到 TSO - 内存可见性问题浅析 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
 
     <div class="post-spread">
-      {% if theme.jiathis %}
-        {% include '_partials/share/jiathis.swig' %}
-      {% elseif theme.baidushare %}
-        {% include '_partials/share/baidushare.swig' %}
-      {% elseif theme.add_this_id %}
-        {% include '_partials/share/add-this.swig' %}
-      {% elseif theme.duoshuo_shortname and theme.duoshuo_share %}
-        {% include '_partials/share/duoshuo_share.swig' %}
-      {% endif %}
+      
     </div>
   </div>
 
-{% endblock %}
 
-{% block sidebar %}
-  {{ sidebar_template.render(true) }}
-{% endblock %}
+          </div>
+          
 
-{% block script_extra %}
-  {% include '_scripts/pages/post-details.swig' %}
-{% endblock %}
+
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            Table of Contents
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            Overview
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name"></p>
+              <p class="site-description motion-element" itemprop="description"></p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives">
+              
+                  <span class="site-state-item-count">10</span>
+                  <span class="site-state-item-name">posts</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-categories">
+                <a href="/categories/index.html">
+                  <span class="site-state-item-count">5</span>
+                  <span class="site-state-item-name">categories</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                
+                  <span class="site-state-item-count">21</span>
+                  <span class="site-state-item-name">tags</span>
+                
+              </div>
+            
+
+          </nav>
+
+          
+
+          
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%AE%9A%E4%BD%8D-Bug"><span class="nav-number">1.</span> <span class="nav-text">定位 Bug</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#Dump-%E7%BA%BF%E7%A8%8B%E6%A0%88%E6%89%BE%E5%88%B0%E6%AD%BB%E5%BE%AA%E7%8E%AF%E7%82%B9"><span class="nav-number">1.1.</span> <span class="nav-text">Dump 线程栈找到死循环点</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#%E5%88%86%E6%9E%90%E6%AD%BB%E5%BE%AA%E7%8E%AF%E5%8E%9F%E5%9B%A0"><span class="nav-number">1.2.</span> <span class="nav-text">分析死循环原因</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#%E7%B2%BE%E5%87%86%E5%A4%8D%E7%8E%B0-Bug"><span class="nav-number">1.3.</span> <span class="nav-text">精准复现 Bug</span></a></li></ol></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E4%BF%AE%E5%A4%8D-Bug"><span class="nav-number">2.</span> <span class="nav-text">修复 Bug</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2022</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">senninha</span>
+
+  
+</div>
+
+
+  <div class="powered-by">Powered by <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a></div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">Theme &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Gemini</a> v5.1.4</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.4"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.1.4"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.4"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

@@ -1,37 +1,811 @@
-{% extends '_layout.swig' %}
-{% import '_macro/post.swig' as post_template %}
-{% import '_macro/sidebar.swig' as sidebar_template %}
+<!DOCTYPE html>
 
 
-{% block title %}{{ page.title }} | {{ config.title }}{% endblock %}
 
-{% block page_class %}page-post-detail{% endblock %}
+  
 
 
-{% block content %}
+<html class="theme-next gemini use-motion" lang="zh">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.4" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.4">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.4" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="jvm,volatile,hotspot,linux," />
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="​    最近在看《深入理解 Linux 内核》，讲到内核同步的时候提到了编译器屏障 __asm__volatile__(&quot;&quot; ::: &quot;memory&quot;) ，这行内联汇编的语句作用如下：  1）asm 用于指示编译器在此插入汇编语句2）volatile 用于告诉编译器，严禁将此处的汇编语句与其它的语句重组合优化。即：原原本本按原来的样子处理这这里的汇编。3）">
+<meta property="og:type" content="article">
+<meta property="og:title" content="从 volatile 到 TSO - 内存可见性问题浅析">
+<meta property="og:url" content="https://isenninha.github.io/2022/01/20/volatile/index.html">
+<meta property="og:site_name" content="senninha">
+<meta property="og:description" content="​    最近在看《深入理解 Linux 内核》，讲到内核同步的时候提到了编译器屏障 __asm__volatile__(&quot;&quot; ::: &quot;memory&quot;) ，这行内联汇编的语句作用如下：  1）asm 用于指示编译器在此插入汇编语句2）volatile 用于告诉编译器，严禁将此处的汇编语句与其它的语句重组合优化。即：原原本本按原来的样子处理这这里的汇编。3）">
+<meta property="og:locale">
+<meta property="og:image" content="https://isenninha.github.io/2022/01/20/volatile/c_objdump_diff.png">
+<meta property="og:image" content="https://isenninha.github.io/2022/01/20/volatile/java_objdump_diff.png">
+<meta property="article:published_time" content="2022-01-20T02:28:21.000Z">
+<meta property="article:modified_time" content="2022-01-21T00:55:41.319Z">
+<meta property="article:author" content="senninha">
+<meta property="article:tag" content="jvm">
+<meta property="article:tag" content="volatile">
+<meta property="article:tag" content="hotspot">
+<meta property="article:tag" content="linux">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://isenninha.github.io/2022/01/20/volatile/c_objdump_diff.png">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '',
+    scheme: 'Gemini',
+    version: '5.1.4',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="https://isenninha.github.io/2022/01/20/volatile/"/>
+
+
+
+
+
+  <title>从 volatile 到 TSO - 内存可见性问题浅析 | senninha</title>
+  
+
+
+
+
+
+
+
+
+<meta name="generator" content="Hexo 6.0.0"></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">senninha</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle">zeng haha</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-主页">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            主页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-分类">
+          <a href="/categories/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br />
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-归档">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-标签">
+          <a href="/tags/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br />
+            
+            标签
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
 
   <div id="posts" class="posts-expand">
-    {{ post_template.render(page) }}
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="https://isenninha.github.io/2022/01/20/volatile/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="senninha">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">从 volatile 到 TSO - 内存可见性问题浅析</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2022-01-20T10:28:21+08:00">
+                2022-01-20
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Java/" itemprop="url" rel="index">
+                    <span itemprop="name">Java</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>​    最近在看《深入理解 Linux 内核》，讲到内核同步的时候提到了编译器屏障 <code>__asm__volatile__(&quot;&quot; ::: &quot;memory&quot;)</code> ，这行内联汇编的语句作用如下：</p>
+<blockquote>
+<p>1）asm 用于指示编译器在此插入汇编语句<br>2）volatile 用于告诉编译器，严禁将此处的汇编语句与其它的语句重组合优化。即：原原本本按原来的样子处理这这里的汇编。<br>3） memory 强制 gcc 编译器假设 RAM 所有内存单元均被汇编指令修改，这样 CPU 中的通用寄存器中的数据将作废</p>
+</blockquote>
+<p>​    这个语义与 C 中的定义是等价的，但是在 Java 中，<strong>volatile</strong> 还有另外一层加强的语义：</p>
+<blockquote>
+<p>声明成 volatile 的字段，Java 线程模型能确保所有线程看到这个变量的值是一致的。</p>
+</blockquote>
+<h3 id="Volatile-语义分析"><a href="#Volatile-语义分析" class="headerlink" title="Volatile 语义分析"></a>Volatile 语义分析</h3><h4 id="Java-中的-volatile-死循环例子"><a href="#Java-中的-volatile-死循环例子" class="headerlink" title="Java 中的 volatile 死循环例子"></a>Java 中的 volatile 死循环例子</h4><p>​    在 Java 里提到 volatile，经常会拿出下面这个例子来证明可见性问题：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">TestVolatile</span> </span>&#123;</span><br><span class="line"><span class="comment">//    public static volatile boolean run = true;</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">boolean</span> run = <span class="keyword">true</span>;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">new</span> Thread(<span class="keyword">new</span> Runnable() &#123;</span><br><span class="line">            <span class="meta">@Override</span></span><br><span class="line">            <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">run</span><span class="params">()</span> </span>&#123;</span><br><span class="line">                whileLoop();</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;).start();</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            Thread.sleep(<span class="number">100</span>);</span><br><span class="line">        &#125; <span class="keyword">catch</span> (InterruptedException e) &#123;</span><br><span class="line">            e.printStackTrace();</span><br><span class="line">        &#125;</span><br><span class="line">        run = <span class="keyword">false</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">whileLoop</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">while</span> (run) &#123;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><code>run</code> 字段不加 <strong>volatile</strong> 修饰，这段程序会死循环，增加之后就会正常退出，并以此证明 Java 中增强的 volatile 语义。但是这个证明方法是错误的。</p>
+<h4 id="C-语言等价代码"><a href="#C-语言等价代码" class="headerlink" title="C 语言等价代码"></a>C 语言等价代码</h4><p>​    以下是等价的 C 代码：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span><span class="meta-string">&lt;pthread.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span><span class="meta-string">&lt;stdio.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span><span class="meta-string">&lt;stdlib.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span><span class="meta-string">&lt;string.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span><span class="meta-string">&lt;errno.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;unistd.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="keyword">int</span> stop = <span class="number">1</span>;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">void</span> *<span class="title">func</span><span class="params">(<span class="keyword">void</span> *arg)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">while</span> (stop) &#123;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">int</span> *p = <span class="built_in">malloc</span>(<span class="keyword">sizeof</span>(<span class="keyword">int</span>));</span><br><span class="line">    *p = <span class="number">666</span>;</span><br><span class="line">    <span class="keyword">return</span> p;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">pthread_t</span> t1;</span><br><span class="line">    <span class="keyword">int</span> err = pthread_create(&amp;t1, <span class="literal">NULL</span>, func, <span class="literal">NULL</span>);</span><br><span class="line">    <span class="keyword">if</span> (err != <span class="number">0</span>) &#123;</span><br><span class="line">        <span class="built_in">printf</span>(<span class="string">&quot;Thread create failed:%s\n&quot;</span>, strerror(errno));</span><br><span class="line"></span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        <span class="built_in">printf</span>(<span class="string">&quot;Thread create success\n&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    sleep(<span class="number">1</span>);</span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">&quot;Change stop flag: %d \n&quot;</span>, stop);</span><br><span class="line">    stop = <span class="number">0</span>;</span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">&quot;Change stop flag finish: %d \n&quot;</span>, stop);</span><br><span class="line">    <span class="keyword">void</span> *p = <span class="literal">NULL</span>;</span><br><span class="line">    pthread_join(t1, &amp;p);</span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">&quot;stop: code=%d\n&quot;</span>, *(<span class="keyword">int</span> *) p);</span><br><span class="line">    <span class="keyword">return</span> EXIT_SUCCESS;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h5 id="O2-编译死循环"><a href="#O2-编译死循环" class="headerlink" title="O2 编译死循环"></a>O2 编译死循环</h5><p>使用 <strong>O2</strong> 编译代码：</p>
+<blockquote>
+<p>➜ gcc main.c -lpthread -o test_volatile &amp;&amp; ./test_volatile -O2</p>
+<p>➜ ./test_volatile<br>Thread create success<br>Change stop flag: 1<br>Change stop flag finish: 0 </p>
+</blockquote>
+<p>出现了与 Java 代码一样的效果，这个死循环无法退出了。</p>
+<h5 id="关闭编译优化"><a href="#关闭编译优化" class="headerlink" title="关闭编译优化"></a>关闭编译优化</h5><p>接下来我们关掉编译优化：</p>
+<blockquote>
+<p>➜ gcc main.c -lpthread -o test_volatile &amp;&amp; ./test_volatile</p>
+<p>➜ ./test_volatile<br>Thread create success<br>Change stop flag: 1<br>Change stop flag finish: 0<br>stop: code=666</p>
+</blockquote>
+<p>代码正常退出。</p>
+<h5 id="使用-volatile-O2-编译"><a href="#使用-volatile-O2-编译" class="headerlink" title="使用 volatile + O2 编译"></a>使用 volatile + O2 编译</h5><p>然后我们将 <code>int stop -&gt; volatile int stop</code>，依然使用 <strong>O2</strong>，输出如下，循环正常推出。</p>
+<blockquote>
+<p>➜ gcc main.c -lpthread -o test_volatile &amp;&amp; ./test_volatile -O2</p>
+<p>➜ ./test_volatile<br>Thread create success<br>Change stop flag: 1<br>Change stop flag finish: 0<br>stop: code=666</p>
+</blockquote>
+<p>​    由此可见，C 语言等价代码中循环能否正常退出，更多是一种编译器的行为。下面我们分析一下编译出来的具体代码。</p>
+<h4 id="分析编译结果"><a href="#分析编译结果" class="headerlink" title="分析编译结果"></a>分析编译结果</h4><h5 id="分析-C-编译结果"><a href="#分析-C-编译结果" class="headerlink" title="分析 C 编译结果"></a>分析 C 编译结果</h5><p>​    同时使用 <strong>O2</strong> 编译一份有无 <strong>volatile</strong> 的可执行文件，使用 <code>objdump -d</code> 反汇编，我们只关注 <strong>func</strong> 方法，左边是有 <strong>volatile</strong>，右边没有：</p>
+<p><img src="/2022/01/20/volatile/c_objdump_diff.png" alt="c_objdump_diff.png"></p>
+<p>紫色框的就是 <em>while</em> 循环的逻辑所在之处，先逐行分析左边的相关指令：</p>
+<p><code>test %eax, %eax</code> 将两个操作数做 与 运算，并根据结果设置相关标志位 <code>ZF</code>。<br><code>jne 1278</code> 如果标志位 <code>ZF</code> 不等于 0，跳转到 1278，即下一条要解析的指令地址。<br><code>mov    0x2dea(%rip),%eax        # 4068 &lt;stop&gt;</code> 这条指令其实是取内存中的 stop 字段的值。</p>
+<p>显而易见，右边的指令对比左边的区别就是 <code>jne</code> 跳转指令不去取内存中 stop 的值。而这，就是循环能否正常停止的关键。</p>
+<h5 id="分析-Java-jit-编译结果"><a href="#分析-Java-jit-编译结果" class="headerlink" title="分析 Java jit 编译结果"></a>分析 Java jit 编译结果</h5><p>​    由 C 的结果，我们可以大胆推测，Java 中是否能将循环停止，也是编译器的行为。</p>
+<p>​    首先，我们尝试设置成按模板解释器执行：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">java -Xint TestVolatile</span><br></pre></td></tr></table></figure>
+
+<p>​    纯解释器执行的情况下，有无 <strong>volatile</strong> 都是可以正常停下来，也就是说是 <strong>jit</strong> 的优化行为导致的循环无法停下来。我们接下去继续验证。</p>
+<p>​    我们直接对比一下有无 volatile <strong>jit</strong> 生成的代码的差异：(jit 生成代码反汇编的配置可以参考<a target="_blank" rel="noopener" href="https://zhuanlan.zhihu.com/p/158168592">这篇</a>文章。)</p>
+<p>分别在有无 volatile 下编译运行：</p>
+<blockquote>
+<p>java -XX:+UnlockDiagnosticVMOptions -XX:+PrintNMethods -Xcomp -XX:CompileCommand=compileonly,TestVolatile.whileLoop TestVolatile &gt; not_volatile</p>
+</blockquote>
+<blockquote>
+<p>java -XX:+UnlockDiagnosticVMOptions -XX:+PrintNMethods -Xcomp -XX:CompileCommand=compileonly,TestVolatile.whileLoop TestVolatile &gt; volatile</p>
+</blockquote>
+<p>​    对比一下两者反汇编的差异：</p>
+<p><img src="/2022/01/20/volatile/java_objdump_diff.png" alt="java_objdump_diff"></p>
+<p>一样是左边有 <strong>volatile</strong>，右边没有，先逐行分析左边指令：</p>
+<p><code>test   %eax,0x168de31a(%rip)        # 0x00007f1a7f9e2000</code> 这行指令是 <strong>Hotspot</strong> 用来实现 <strong>safepoint</strong> 的代码，先直接无视。<br><code>movzbl 0x68(%r10),%r8d</code> 读取 run 值到 r8 寄存器。<br><code>test   %r8d,%r8d</code> 将两个操作数做 与 运算，并根据结果设置相关标志位 <code>ZF</code>。<br><code>jne    0x00007f1a69103ce0</code> 如果标志位 <code>ZF</code> 不等于 0，跳转到 3ce0，即第一条指令的位置。</p>
+<p>显而易见，右边的指令并没有读取内存中 <code>run</code> 值的指令，而是直接无条件<code>jmp</code>跳转到 <strong>Hotspot</strong> 的 <strong>safepoint</strong> 代码就继续执行，根本不可能读取到 <code>run</code> 值的变化。</p>
+<p>以上实验环境如下：</p>
+<blockquote>
+<p>gcc version 8.3.0 (Debian 8.3.0-6) </p>
+<p>java version “1.8.0_261”<br>Java(TM) SE Runtime Environment (build 1.8.0_261-b12)<br>Java HotSpot(TM) 64-Bit Server VM (build 25.261-b12, mixed mode)</p>
+</blockquote>
+<h4 id="Java-中的-volatile"><a href="#Java-中的-volatile" class="headerlink" title="Java 中的 volatile"></a>Java 中的 volatile</h4><p>​    由此可见，即使没有 Java 增强的 volatile 语义，所谓内存可见性导致循环无法停止的问题是不存在的，循环无法退出完全是编译器的优化行为。</p>
+<p>​    Java 中的 volatile 一方面与 gcc 定义的 volatile 语义一致，可以提示编译器该变量每一次都需要从内存中获取（先忽略 cache-line），不允许编译器进行优化；另一方面，Java 内存模型约束 volatile 定义的字段在 CPU 层面不会进行指令重排序。</p>
+<p>​    在 JVM 的字节码解释器中，如果 putstatic 字节码或 putfield 字节码的变量是 Java 层面的 volatile 关键字修饰的，就会在指令执行的最后插入一道 StoreLoad 屏障：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">__ams__ volatile(&quot;lock; addl $0, $0(%%esp)&quot; : : : &quot;cc&quot;, &quot;memory&quot;)</span><br></pre></td></tr></table></figure>
+
+<p>​    这条指令可以把 CPU 缓存的写操作刷新到主存中。</p>
+<p>​    再回到上面的 Java 循环的例子中，在我们禁止掉编译优化后，有无 volatile 循环都是可以正常停止下来的。区别在于有 volatile 的情况，一旦标记位修改，马上就会刷新到主存，另一个线程就可以读取到最新的数值。没有 volatile 的情况，则必须等 CPU 把修改的值刷新到主存后，另外一个线程才能读取到最新的数值。</p>
+<p>​    这种写操作的延迟刷新，在我们的例子里可能只是会让循环停止产生延迟，但是在某些场景，会出现令人迷惑的情景： <strong>A线程</strong> 写操作在前，但是随后做读取操作的 <strong>B线程</strong> 依然读取到了旧值，我们从外部观察，就像是发生了 <strong>读写重排序</strong>，这个重排序并不是 CPU 真的对指令进行重排，而是由于缓存写导致的重排。</p>
+<h3 id="TSO-模型"><a href="#TSO-模型" class="headerlink" title="TSO 模型"></a>TSO 模型</h3><p>​    为什么需要有 <code>lock</code> 指令才能确保写操作对其他线程马上可见呢？这是因为主存的写速度与 CPU 相比实在是太慢了，必须增加一层缓存(StoreBuffer)，通过 <code>lock</code> 执行可以刷新 StoreBuffer。相关的模型叫：TSO，可以直接参考这篇文章：</p>
+<p><a target="_blank" rel="noopener" href="https://www.cnblogs.com/lqlqlq/p/13693876.html"><a target="_blank" rel="noopener" href="https://www.cnblogs.com/lqlqlq/p/13693876.html">x86-TSO : 适用于x86体系架构并发编程的内存模型</a></a></p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/jvm/" rel="tag"># jvm</a>
+          
+            <a href="/tags/volatile/" rel="tag"># volatile</a>
+          
+            <a href="/tags/hotspot/" rel="tag"># hotspot</a>
+          
+            <a href="/tags/linux/" rel="tag"># linux</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2021/03/06/LinkedBlockingQueue-infinite-loop/" rel="next" title="LinkedBlockingQueue 死循环">
+                <i class="fa fa-chevron-left"></i> LinkedBlockingQueue 死循环
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
 
     <div class="post-spread">
-      {% if theme.jiathis %}
-        {% include '_partials/share/jiathis.swig' %}
-      {% elseif theme.baidushare %}
-        {% include '_partials/share/baidushare.swig' %}
-      {% elseif theme.add_this_id %}
-        {% include '_partials/share/add-this.swig' %}
-      {% elseif theme.duoshuo_shortname and theme.duoshuo_share %}
-        {% include '_partials/share/duoshuo_share.swig' %}
-      {% endif %}
+      
     </div>
   </div>
 
-{% endblock %}
 
-{% block sidebar %}
-  {{ sidebar_template.render(true) }}
-{% endblock %}
+          </div>
+          
 
-{% block script_extra %}
-  {% include '_scripts/pages/post-details.swig' %}
-{% endblock %}
+
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            Table of Contents
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            Overview
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name"></p>
+              <p class="site-description motion-element" itemprop="description"></p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives">
+              
+                  <span class="site-state-item-count">10</span>
+                  <span class="site-state-item-name">posts</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-categories">
+                <a href="/categories/index.html">
+                  <span class="site-state-item-count">5</span>
+                  <span class="site-state-item-name">categories</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                
+                  <span class="site-state-item-count">21</span>
+                  <span class="site-state-item-name">tags</span>
+                
+              </div>
+            
+
+          </nav>
+
+          
+
+          
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#Volatile-%E8%AF%AD%E4%B9%89%E5%88%86%E6%9E%90"><span class="nav-number">1.</span> <span class="nav-text">Volatile 语义分析</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#Java-%E4%B8%AD%E7%9A%84-volatile-%E6%AD%BB%E5%BE%AA%E7%8E%AF%E4%BE%8B%E5%AD%90"><span class="nav-number">1.1.</span> <span class="nav-text">Java 中的 volatile 死循环例子</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#C-%E8%AF%AD%E8%A8%80%E7%AD%89%E4%BB%B7%E4%BB%A3%E7%A0%81"><span class="nav-number">1.2.</span> <span class="nav-text">C 语言等价代码</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#O2-%E7%BC%96%E8%AF%91%E6%AD%BB%E5%BE%AA%E7%8E%AF"><span class="nav-number">1.2.1.</span> <span class="nav-text">O2 编译死循环</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#%E5%85%B3%E9%97%AD%E7%BC%96%E8%AF%91%E4%BC%98%E5%8C%96"><span class="nav-number">1.2.2.</span> <span class="nav-text">关闭编译优化</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#%E4%BD%BF%E7%94%A8-volatile-O2-%E7%BC%96%E8%AF%91"><span class="nav-number">1.2.3.</span> <span class="nav-text">使用 volatile + O2 编译</span></a></li></ol></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%88%86%E6%9E%90%E7%BC%96%E8%AF%91%E7%BB%93%E6%9E%9C"><span class="nav-number">1.3.</span> <span class="nav-text">分析编译结果</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#%E5%88%86%E6%9E%90-C-%E7%BC%96%E8%AF%91%E7%BB%93%E6%9E%9C"><span class="nav-number">1.3.1.</span> <span class="nav-text">分析 C 编译结果</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#%E5%88%86%E6%9E%90-Java-jit-%E7%BC%96%E8%AF%91%E7%BB%93%E6%9E%9C"><span class="nav-number">1.3.2.</span> <span class="nav-text">分析 Java jit 编译结果</span></a></li></ol></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Java-%E4%B8%AD%E7%9A%84-volatile"><span class="nav-number">1.4.</span> <span class="nav-text">Java 中的 volatile</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#TSO-%E6%A8%A1%E5%9E%8B"><span class="nav-number">2.</span> <span class="nav-text">TSO 模型</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2022</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">senninha</span>
+
+  
+</div>
+
+
+  <div class="powered-by">Powered by <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a></div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">Theme &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Gemini</a> v5.1.4</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.4"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.1.4"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.4"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

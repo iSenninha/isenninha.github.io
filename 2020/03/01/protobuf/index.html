@@ -1,37 +1,832 @@
-{% extends '_layout.swig' %}
-{% import '_macro/post.swig' as post_template %}
-{% import '_macro/sidebar.swig' as sidebar_template %}
+<!DOCTYPE html>
 
 
-{% block title %}{{ page.title }} | {{ config.title }}{% endblock %}
 
-{% block page_class %}page-post-detail{% endblock %}
+  
 
 
-{% block content %}
+<html class="theme-next gemini use-motion" lang="zh">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.4" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.4">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.4" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="protobuf," />
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="​        对性能和流量敏感，或者一些需要长连接的服务，都是自己再造一层应用层，而不是用http协议。自造应用层，绕不开的是用哪种编解码方式，而Protobuf就是其中一种高效的编解码协议。 1. 构造最简单的Protobuf编解码代码​        这里跳过编写.proto文件，直接借助jprotobuf这个项目生成对应的Java编解码代码，协议实体如下： 123456public cl">
+<meta property="og:type" content="article">
+<meta property="og:title" content="protobuf编解码原理">
+<meta property="og:url" content="https://isenninha.github.io/2020/03/01/protobuf/index.html">
+<meta property="og:site_name" content="senninha">
+<meta property="og:description" content="​        对性能和流量敏感，或者一些需要长连接的服务，都是自己再造一层应用层，而不是用http协议。自造应用层，绕不开的是用哪种编解码方式，而Protobuf就是其中一种高效的编解码协议。 1. 构造最简单的Protobuf编解码代码​        这里跳过编写.proto文件，直接借助jprotobuf这个项目生成对应的Java编解码代码，协议实体如下： 123456public cl">
+<meta property="og:locale">
+<meta property="article:published_time" content="2020-03-01T05:46:52.000Z">
+<meta property="article:modified_time" content="2020-03-02T10:46:41.000Z">
+<meta property="article:author" content="senninha">
+<meta property="article:tag" content="protobuf">
+<meta name="twitter:card" content="summary">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '',
+    scheme: 'Gemini',
+    version: '5.1.4',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="https://isenninha.github.io/2020/03/01/protobuf/"/>
+
+
+
+
+
+  <title>protobuf编解码原理 | senninha</title>
+  
+
+
+
+
+
+
+
+
+<meta name="generator" content="Hexo 6.0.0"></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">senninha</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle">zeng haha</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-主页">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            主页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-分类">
+          <a href="/categories/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br />
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-归档">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-标签">
+          <a href="/tags/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br />
+            
+            标签
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
 
   <div id="posts" class="posts-expand">
-    {{ post_template.render(page) }}
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="https://isenninha.github.io/2020/03/01/protobuf/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="senninha">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">protobuf编解码原理</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2020-03-01T13:46:52+08:00">
+                2020-03-01
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E9%80%9A%E7%94%A8%E6%A1%86%E6%9E%B6/" itemprop="url" rel="index">
+                    <span itemprop="name">通用框架</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>​        对性能和流量敏感，或者一些需要长连接的服务，都是自己再造一层应用层，而不是用http协议。自造应用层，绕不开的是用哪种编解码方式，而Protobuf就是其中一种高效的编解码协议。</p>
+<h4 id="1-构造最简单的Protobuf编解码代码"><a href="#1-构造最简单的Protobuf编解码代码" class="headerlink" title="1. 构造最简单的Protobuf编解码代码"></a>1. 构造最简单的Protobuf编解码代码</h4><p>​        这里跳过编写.proto文件，直接借助<strong>jprotobuf</strong>这个项目生成对应的Java编解码代码，协议实体如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">ProtobufMessage</span> </span>&#123;</span><br><span class="line">    <span class="meta">@Protobuf(order = 2)</span></span><br><span class="line">    <span class="keyword">private</span> String name;</span><br><span class="line">    <span class="meta">@Protobuf(order = 1)</span></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">int</span> age;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h5 id="1-1-生成的encode代码"><a href="#1-1-生成的encode代码" class="headerlink" title="1.1 生成的encode代码"></a>1.1 生成的encode代码</h5><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">com.google.protobuf.ByteString f_2 = <span class="keyword">null</span>;</span><br><span class="line"><span class="keyword">if</span> (!CodedConstant.isNull(t.getName())) &#123;</span><br><span class="line">    f_2 = com.google.protobuf.ByteString.copyFromUtf8(t.getName());</span><br><span class="line">&#125;</span><br><span class="line">Integer f_1 = <span class="keyword">null</span>;</span><br><span class="line"><span class="keyword">if</span> (!CodedConstant.isNull(t.getAge())) &#123;</span><br><span class="line">    f_1 = t.getAge();</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">if</span> (f_2 != <span class="keyword">null</span>) &#123;</span><br><span class="line">    output.writeBytes(<span class="number">2</span>, f_2);</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">if</span> (f_1 != <span class="keyword">null</span>) &#123;</span><br><span class="line">    output.writeInt32(<span class="number">1</span>, f_1.intValue());</span><br><span class="line">&#125;</span><br><span class="line">output.flush();</span><br></pre></td></tr></table></figure>
+
+<p>直接看<strong>writeInt32(1, f_1.intValue())</strong>这行代码，里面的操作如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Override</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">writeInt32</span><span class="params">(<span class="keyword">final</span> <span class="keyword">int</span> fieldNumber, <span class="keyword">final</span> <span class="keyword">int</span> value)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">  writeTag(fieldNumber, WireFormat.WIRETYPE_VARINT);</span><br><span class="line">  writeInt32NoTag(value);</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>首先是写入一个<strong>filedNumber</strong>，即我们指定的<strong>order</strong> 顺序，可以看作是key-value里的key，这也意味着pb是可以部分字段解码的（跨版本兼容性），同时，这个key里也指明了这个value的WireFormat类型<strong>WIRETYPE_VARINT</strong>，这个名词的具体意思下面会介绍。<strong>writeTag</strong>仅仅是把原始的 order &lt;&lt;  3bit，然后 | 类型，只是左移三位，意味着类型满打满算也只有8种，按这个算法，name生成的tag是<strong>18</strong>，value生成的tag是<strong>8</strong>，记住这两个数字，在下面的decode是有用的。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">int</span> <span class="title">makeTag</span><span class="params">(<span class="keyword">final</span> <span class="keyword">int</span> fieldNumber, <span class="keyword">final</span> <span class="keyword">int</span> wireType)</span> </span>&#123;</span><br><span class="line">  <span class="keyword">return</span> (fieldNumber &lt;&lt; TAG_TYPE_BITS) | wireType;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>然后是写入具体的<strong>value</strong>，这个value的写入方式是无符号变长整形写入。</p>
+<h5 id="1-2-生成的decode代码"><a href="#1-2-生成的decode代码" class="headerlink" title="1.2 生成的decode代码"></a>1.2 生成的decode代码</h5><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">boolean</span> done = <span class="keyword">false</span>;</span><br><span class="line">Codec codec = <span class="keyword">null</span>;</span><br><span class="line"><span class="keyword">while</span> (!done) &#123;</span><br><span class="line">    <span class="keyword">int</span> tag = input.readTag();</span><br><span class="line">    <span class="keyword">if</span> (tag == <span class="number">0</span>) &#123;</span><br><span class="line">        <span class="keyword">break</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> (tag == <span class="number">18</span>) &#123;</span><br><span class="line">        ret.setName(input.readString())</span><br><span class="line">        ;</span><br><span class="line">        <span class="keyword">continue</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> (tag == <span class="number">8</span>) &#123;</span><br><span class="line">        ret.setAge(input.readInt32())</span><br><span class="line">        ;</span><br><span class="line">        <span class="keyword">continue</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    input.skipField(tag);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>解码一目了然，先读取一个tag，然后根据tag值调用对应的decode方法，然后再写入实体。</p>
+<h4 id="2-protobuf高效编码原理"><a href="#2-protobuf高效编码原理" class="headerlink" title="2. protobuf高效编码原理"></a>2. protobuf高效编码原理</h4><p>​        上面已经把protobuf的编码原理概括完了，就是通过order里标识value类型，然后根据类型，encode/decode对应的字段。</p>
+<h5 id="2-1-字段类型WireFormat"><a href="#2-1-字段类型WireFormat" class="headerlink" title="2.1 字段类型WireFormat"></a>2.1 字段类型WireFormat</h5><table>
+<thead>
+<tr>
+<th>类型</th>
+<th>意义</th>
+<th>使用范围</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>0</td>
+<td>Varint</td>
+<td>int32,int64,uint32,uint64,enum,bool</td>
+</tr>
+<tr>
+<td>1</td>
+<td>64-bit</td>
+<td>fixed64,sfixed64,double</td>
+</tr>
+<tr>
+<td>2</td>
+<td>length-delimited</td>
+<td>string,bytes</td>
+</tr>
+</tbody></table>
+<p>这三种类型，通常最常使用的是<strong>Varint</strong>，即变厂编码，下面会详细提到；而<strong>64-bit</strong>就是定长编码，简单粗暴，但是没有压缩，会占据比较大的带宽；最后一种是<strong>length-delimited</strong>，这个多用于字符串，上面的栗子中name字段就是用这种编码方式。</p>
+<h5 id="2-2-Varint变长编码"><a href="#2-2-Varint变长编码" class="headerlink" title="2.2 Varint变长编码"></a>2.2 Varint变长编码</h5><p>​        1.1的栗子中，如果我们设value=150，那么编码后，这个字段就是:</p>
+<blockquote>
+<p>0x08 96 01</p>
+</blockquote>
+<p>08的意思通过下面这个运算，取得WrieFormat=0，order=1:</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">WrieFormat = <span class="number">0x8</span> &amp;&amp; <span class="number">0b111</span> = <span class="number">0</span>;</span><br><span class="line">order = <span class="number">0x8</span> &gt;&gt; <span class="number">3</span> = <span class="number">1</span>;	</span><br></pre></td></tr></table></figure>
+
+<p>去掉tag，然后我们要引入msb(most significant bit,即最高位)这个概念，什么叫msb呢？就是每个字节的最高位，如果最高位为1，表明这个字段的value还没读完。显然，<strong>96</strong>的最高位是1，继续往下读一个字节，而<strong>01</strong>最高位是0，表明已经到了这个字段的边界了。好了，让我们按这个方式去掉msb：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">96 01 = 1001 0110 0000 0001</span><br><span class="line">      =  000 0001  001 0110 (翻转成大端,并且去掉msb)</span><br><span class="line">      = 128 + 16 + 4 + 2 (每一个1代表的权重)</span><br><span class="line">      = 150</span><br></pre></td></tr></table></figure>
+
+<p>需要注意的是，protobuf里面是按小端方式存放多字节类型数据的。</p>
+<p>​        按照<strong>Varint</strong>变长编码方式，依然用1中的栗子，如果<strong>value = 1</strong>，正常编码是四个字节，但是用变长编码一个字节就可以搞定，压缩率75，极端情况下<strong>value = Integer.MAX_VALUE</strong>的话，编码后就变成了5个字节，反而比正常编码更大。当然，我们考虑一般情况下，我们的值并不会很大，所以采用<strong>Varint</strong>编码还是利大于弊的。但是上面我们仅仅考虑的是非负数的情况，一旦<strong>value = -1</strong>，那么按照这个编码方式，一样会编码出5个字节的长度。（事实上，所有负数都会编码出5个字节，具体原因想想负数的表示方式。）为了解决这种情况，就要引入<strong>ZigZag</strong>编码方式了。</p>
+<h5 id="2-3-ZigZag编码"><a href="#2-3-ZigZag编码" class="headerlink" title="2.3 ZigZag编码"></a>2.3 ZigZag编码</h5><p><strong>ZiaZag</strong>将有符号的整形编码成<strong>无符号的整形</strong>，一定要记住这个<strong>无符号</strong>概念，方便下面理解。一个绝对值很小的数字(类似-1)可变长编码后也会很小。通过这种通过正负来回摆动的编码方式(ZigZag是蜿蜒的意思)，所以，-1被编码成1,1编码成2,-2编码成3。如下：</p>
+<table>
+<thead>
+<tr>
+<th>编码前有符号数</th>
+<th>编码后</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>0</td>
+<td>1</td>
+</tr>
+<tr>
+<td>-1</td>
+<td>1</td>
+</tr>
+<tr>
+<td>1</td>
+<td>2</td>
+</tr>
+<tr>
+<td>-2</td>
+<td>3</td>
+</tr>
+<tr>
+<td>214</td>
+<td>428</td>
+</tr>
+<tr>
+<td>-214</td>
+<td>427</td>
+</tr>
+</tbody></table>
+<p>负数是 abs(x) * 2 - 1<br>正数是 x * 2<br>通过以下这个更高效的位移方式实现：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">(n &lt;&lt; <span class="number">1</span>) ^ (n &gt;&gt; <span class="number">31</span>)</span><br></pre></td></tr></table></figure>
+<p>左边的部分是<strong>乘以2</strong>，</p>
+<p>右边部分，如果是非负数的话，<strong>异或0</strong>，还是本身。<br>负数的话，<strong>异或全1</strong>，即是每一位翻转。</p>
+<p>还原方式如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">(n &gt;&gt;&gt; <span class="number">1</span>) ^ -(n &amp; <span class="number">1</span>)</span><br></pre></td></tr></table></figure>
+<p>左边表示<strong>除以2</strong>得到中间值nl</p>
+<p>右边部分，如果是原值是非负数，那么这个数n就是偶数，<strong>n &amp; 1</strong>等于0，那么就等于<strong>异或0</strong>，最后还原的值就是nl。<br>负数的话，n是个偶数，所以<strong>n &amp; 1 = 1</strong>，-1的二进制表示<strong>全1</strong>，异或翻转每一位。</p>
+<h4 id="3-总结"><a href="#3-总结" class="headerlink" title="3.总结"></a>3.总结</h4><p>Protobuf通过Varint和ZigZag算法压缩数据节省传输带宽，借助预生成encode和decode代码提高性能。</p>
+<h4 id="参考资料"><a href="#参考资料" class="headerlink" title="参考资料"></a>参考资料</h4><ul>
+<li><a target="_blank" rel="noopener" href="https://developers.google.com/protocol-buffers/docs/encoding">Encoding|Protocol Buffer</a></li>
+<li><a target="_blank" rel="noopener" href="https://github.com/iSenninha/jianShuRecord/blob/master/%E6%A1%86%E6%9E%B6%E5%AD%A6%E4%B9%A0/protobuf/protobuf_encoding.md">protobuf的编码方式</a></li>
+</ul>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/protobuf/" rel="tag"># protobuf</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2020/02/29/agent/" rel="next" title="基于agent的热更新以及agent的应用场景">
+                <i class="fa fa-chevron-left"></i> 基于agent的热更新以及agent的应用场景
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2020/03/08/use-mat/" rel="prev" title="Memory Analyzer使用">
+                Memory Analyzer使用 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
 
     <div class="post-spread">
-      {% if theme.jiathis %}
-        {% include '_partials/share/jiathis.swig' %}
-      {% elseif theme.baidushare %}
-        {% include '_partials/share/baidushare.swig' %}
-      {% elseif theme.add_this_id %}
-        {% include '_partials/share/add-this.swig' %}
-      {% elseif theme.duoshuo_shortname and theme.duoshuo_share %}
-        {% include '_partials/share/duoshuo_share.swig' %}
-      {% endif %}
+      
     </div>
   </div>
 
-{% endblock %}
 
-{% block sidebar %}
-  {{ sidebar_template.render(true) }}
-{% endblock %}
+          </div>
+          
 
-{% block script_extra %}
-  {% include '_scripts/pages/post-details.swig' %}
-{% endblock %}
+
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            Table of Contents
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            Overview
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name"></p>
+              <p class="site-description motion-element" itemprop="description"></p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives">
+              
+                  <span class="site-state-item-count">10</span>
+                  <span class="site-state-item-name">posts</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-categories">
+                <a href="/categories/index.html">
+                  <span class="site-state-item-count">5</span>
+                  <span class="site-state-item-name">categories</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                
+                  <span class="site-state-item-count">21</span>
+                  <span class="site-state-item-name">tags</span>
+                
+              </div>
+            
+
+          </nav>
+
+          
+
+          
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-4"><a class="nav-link" href="#1-%E6%9E%84%E9%80%A0%E6%9C%80%E7%AE%80%E5%8D%95%E7%9A%84Protobuf%E7%BC%96%E8%A7%A3%E7%A0%81%E4%BB%A3%E7%A0%81"><span class="nav-number">1.</span> <span class="nav-text">1. 构造最简单的Protobuf编解码代码</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#1-1-%E7%94%9F%E6%88%90%E7%9A%84encode%E4%BB%A3%E7%A0%81"><span class="nav-number">1.1.</span> <span class="nav-text">1.1 生成的encode代码</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#1-2-%E7%94%9F%E6%88%90%E7%9A%84decode%E4%BB%A3%E7%A0%81"><span class="nav-number">1.2.</span> <span class="nav-text">1.2 生成的decode代码</span></a></li></ol></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-protobuf%E9%AB%98%E6%95%88%E7%BC%96%E7%A0%81%E5%8E%9F%E7%90%86"><span class="nav-number">2.</span> <span class="nav-text">2. protobuf高效编码原理</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#2-1-%E5%AD%97%E6%AE%B5%E7%B1%BB%E5%9E%8BWireFormat"><span class="nav-number">2.1.</span> <span class="nav-text">2.1 字段类型WireFormat</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#2-2-Varint%E5%8F%98%E9%95%BF%E7%BC%96%E7%A0%81"><span class="nav-number">2.2.</span> <span class="nav-text">2.2 Varint变长编码</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#2-3-ZigZag%E7%BC%96%E7%A0%81"><span class="nav-number">2.3.</span> <span class="nav-text">2.3 ZigZag编码</span></a></li></ol></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-%E6%80%BB%E7%BB%93"><span class="nav-number">3.</span> <span class="nav-text">3.总结</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99"><span class="nav-number">4.</span> <span class="nav-text">参考资料</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2022</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">senninha</span>
+
+  
+</div>
+
+
+  <div class="powered-by">Powered by <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a></div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">Theme &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Gemini</a> v5.1.4</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.4"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.1.4"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.4"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>
