@@ -79,15 +79,15 @@
 
 
 
-<meta name="description" content="代码片段​        以下是一段很简单的函数，对传入的参数进行 除以8 的操作 123long arith(long a) &amp;#123;	return a &#x2F; 8;&amp;#125;  ​        gcc -S test.c编译后对应的汇编代码如下： 1234567891011121314151617181920212223242526	.file	&quot;t.c&quot;	.text">
+<meta name="description" content="代码片段​        以下是一段很简单的函数，对传入的参数进行 除以8 的操作： 123long arith(long a) &amp;#123;	return a &#x2F; 8;&amp;#125;">
 <meta property="og:type" content="article">
 <meta property="og:title" content="除法函数背后的优化细节">
 <meta property="og:url" content="https://isenninha.github.io/2022/05/03/div_optimize/index.html">
 <meta property="og:site_name" content="senninha">
-<meta property="og:description" content="代码片段​        以下是一段很简单的函数，对传入的参数进行 除以8 的操作 123long arith(long a) &amp;#123;	return a &#x2F; 8;&amp;#125;  ​        gcc -S test.c编译后对应的汇编代码如下： 1234567891011121314151617181920212223242526	.file	&quot;t.c&quot;	.text">
+<meta property="og:description" content="代码片段​        以下是一段很简单的函数，对传入的参数进行 除以8 的操作： 123long arith(long a) &amp;#123;	return a &#x2F; 8;&amp;#125;">
 <meta property="og:locale">
 <meta property="article:published_time" content="2022-05-03T03:21:53.000Z">
-<meta property="article:modified_time" content="2022-05-03T10:03:47.777Z">
+<meta property="article:modified_time" content="2022-05-03T10:08:30.289Z">
 <meta property="article:author" content="senninha">
 <meta property="article:tag" content="assembly">
 <meta property="article:tag" content="c">
@@ -354,10 +354,12 @@
       
 
       
-        <h4 id="代码片段"><a href="#代码片段" class="headerlink" title="代码片段"></a>代码片段</h4><p>​        以下是一段很简单的函数，对传入的参数进行 <strong>除以8</strong> 的操作</p>
+        <h4 id="代码片段"><a href="#代码片段" class="headerlink" title="代码片段"></a>代码片段</h4><p>​        以下是一段很简单的函数，对传入的参数进行 <strong>除以8</strong> 的操作：</p>
 <figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">long</span> <span class="title">arith</span><span class="params">(<span class="keyword">long</span> a)</span> </span>&#123;</span><br><span class="line">	<span class="keyword">return</span> a / <span class="number">8</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
-<p>​        <code>gcc -S test.c</code>编译后对应的汇编代码如下：</p>
+<span id="more"></span>        
+
+<p><code>gcc -S test.c</code>编译后对应的汇编代码如下：</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line">	.file	&quot;t.c&quot;</span><br><span class="line">	.text</span><br><span class="line">	.globl	arith</span><br><span class="line">	.type	arith, @function</span><br><span class="line">arith:</span><br><span class="line">.LFB0:</span><br><span class="line">	.cfi_startproc</span><br><span class="line">	pushq	%rbp</span><br><span class="line">	.cfi_def_cfa_offset 16</span><br><span class="line">	.cfi_offset 6, -16</span><br><span class="line">	movq	%rsp, %rbp</span><br><span class="line">	.cfi_def_cfa_register 6</span><br><span class="line">	movq	%rdi, -8(%rbp)</span><br><span class="line">	movq	-8(%rbp), %rax</span><br><span class="line">	leaq	7(%rax), %rdx</span><br><span class="line">	testq	%rax, %rax</span><br><span class="line">	cmovs	%rdx, %rax</span><br><span class="line">	sarq	$3, %rax</span><br><span class="line">	popq	%rbp</span><br><span class="line">	.cfi_def_cfa 7, 8</span><br><span class="line">	ret</span><br><span class="line">	.cfi_endproc</span><br><span class="line">.LFE0:</span><br><span class="line">	.size	arith, .-arith</span><br><span class="line">	.ident	&quot;GCC: (Debian 8.3.0-6) 8.3.0&quot;</span><br><span class="line">	.section	.note.GNU-stack,&quot;&quot;,@progbits</span><br></pre></td></tr></table></figure>
 
 <p>​        真正与函数 <strong>arith</strong> 对应的汇编代码很好找，只是一行 C 代码，编译后有 10 行汇编指令，下面逐行分析指令后面的意义。</p>
