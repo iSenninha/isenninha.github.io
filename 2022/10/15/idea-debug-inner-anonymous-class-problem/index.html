@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next gemini use-motion" lang="zh">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.4" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.4">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.4" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="IntelliJ IDEA,Debug Inner Anonymous Class," />
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="​        组内有同学发现，在进程启动前设置好的 匿名内部类 断点，在进程启动完成始终无法进入。我尝试复现，发现只在特定的类上才会出现，其他的类上的匿名内部类没有问题，这就非常奇怪了。一番操作，从 JDB 到 调试 IDEA 断点逻辑，终于发现症结：业务逻辑有一个扫包初始化类的逻辑，这个类初始化的顺序会影响 IDEA 对断点的设置。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Debug IDEA 匿名内部类断点无法进入问题">
+<meta property="og:url" content="https://isenninha.github.io/2022/10/15/idea-debug-inner-anonymous-class-problem/index.html">
+<meta property="og:site_name" content="senninha">
+<meta property="og:description" content="​        组内有同学发现，在进程启动前设置好的 匿名内部类 断点，在进程启动完成始终无法进入。我尝试复现，发现只在特定的类上才会出现，其他的类上的匿名内部类没有问题，这就非常奇怪了。一番操作，从 JDB 到 调试 IDEA 断点逻辑，终于发现症结：业务逻辑有一个扫包初始化类的逻辑，这个类初始化的顺序会影响 IDEA 对断点的设置。">
+<meta property="og:locale">
+<meta property="article:published_time" content="2022-10-15T08:19:44.000Z">
+<meta property="article:modified_time" content="2022-10-15T12:22:06.015Z">
+<meta property="article:author" content="senninha">
+<meta property="article:tag" content="IntelliJ IDEA">
+<meta property="article:tag" content="Debug Inner Anonymous Class">
+<meta name="twitter:card" content="summary">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '',
+    scheme: 'Gemini',
+    version: '5.1.4',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="https://isenninha.github.io/2022/10/15/idea-debug-inner-anonymous-class-problem/"/>
+
+
+
+
+
+  <title>Debug IDEA 匿名内部类断点无法进入问题 | senninha</title>
+  
+
+
+
+
+
+
+
+
+<meta name="generator" content="Hexo 6.0.0"></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">senninha</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle">zeng haha</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-主页">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            主页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-分类">
+          <a href="/categories/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br />
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-归档">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-标签">
+          <a href="/tags/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br />
+            
+            标签
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="https://isenninha.github.io/2022/10/15/idea-debug-inner-anonymous-class-problem/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="senninha">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">Debug IDEA 匿名内部类断点无法进入问题</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2022-10-15T16:19:44+08:00">
+                2022-10-15
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/DevTools/" itemprop="url" rel="index">
+                    <span itemprop="name">DevTools</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>​        组内有同学发现，在进程启动前设置好的 <strong>匿名内部类</strong> 断点，在进程启动完成始终无法进入。我尝试复现，发现只在特定的类上才会出现，其他的类上的匿名内部类没有问题，这就非常奇怪了。一番操作，从 JDB 到 调试 <strong>IDEA</strong> 断点逻辑，终于发现症结：业务逻辑有一个扫包初始化类的逻辑，这个类初始化的顺序会影响 <strong>IDEA</strong> 对断点的设置。</p>
+<span id="more"></span>
+
+<h4 id="无法断点的环境"><a href="#无法断点的环境" class="headerlink" title="无法断点的环境"></a>无法断点的环境</h4><p>​      无法断点的类非常简单，抽象出来如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">AnonymousClass</span> </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">entry</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">new</span> Runnable() &#123;	<span class="comment">// 位置 0</span></span><br><span class="line">            <span class="meta">@Override</span></span><br><span class="line">            <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">run</span><span class="params">()</span> </span>&#123;</span><br><span class="line">                System.out.println(<span class="string">&quot;Anonymous Inner class print.&quot;</span>);	<span class="comment">// 位置1 设置断点</span></span><br><span class="line">            &#125;</span><br><span class="line">        &#125;.run();</span><br><span class="line">        System.out.println(<span class="string">&quot;Entry print.&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>​      尝试在进程启动前 <strong>位置1</strong> 处设置断点，然后在入口函数处调用 <strong>entry</strong> 方法，Debug 启动进程，可以发现断点始终无法进入。具体代码可见：<a target="_blank" rel="noopener" href="https://github.com/iSenninha/anonymous_debug_problem">anonymous_debug_problem</a></p>
+<h4 id="debug-无法-debug"><a href="#debug-无法-debug" class="headerlink" title="debug 无法 debug"></a>debug 无法 debug</h4><p>​        开始套娃 debug 无法 debug 的问题了，首先闪过的念头是，是不是 Idea 就无法支持在进程启动前的匿名内部类断点，随便找了另外一个匿名内部类，发现是可以正常进入的。如果是普遍现象，应该早就发现了，并且应该网上到处都是相关问题的讨论。</p>
+<p>​        观察一下进程启动后无法 debug 的情况，断点的小红点上没有出现 <strong><em>√</em></strong> 符号。根据 IDEA 文档 <a target="_blank" rel="noopener" href="https://www.jetbrains.com/help/idea/using-breakpoints.html#breakpoint-icons">breakpoint-icons</a> ，只有在断点上出现这个符号，才表明 IDEA 的断点 <strong>已验证 / Verified</strong>。有意思的是，这个时候重复 toggle 设置断点，又出现了 <strong><em>√</em></strong> 符号，断点可以正常进入了。</p>
+<p>​        这时候就有两种可能性了，一种是 IDEA 有 bug，没有往 JVM 设置断点；另外一种情况是 JVM 的问题，没有响应 IDEA 的断点请求。按上面的表现来看，前者的可能性更大。</p>
+<h4 id="尝试用其他工具断点定位问题"><a href="#尝试用其他工具断点定位问题" class="headerlink" title="尝试用其他工具断点定位问题"></a>尝试用其他工具断点定位问题</h4><p>​        这个时候，思路是尝试用其他工具断点，排除一下是否是 IDEA 有 bug。手头最容易获取的 JVM Debug 工具其实是 <strong>JDB</strong>，看这名字就知道跟 GDB 是一样的玩意，看了一下帮助文档，开始尝试。</p>
+<p>​        直接 jdb 入口类 Main（注意是全限定类名）：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">➜ jdb io.isenninha.anonymous_debug_problem.Main </span><br><span class="line">正在初始化jdb...</span><br></pre></td></tr></table></figure>
+
+<p>​        在执行 run 指令前先设置断点，<code>stop at &lt;class id&gt;:&lt;line&gt;</code>。 这里有个小插曲，匿名内部类的断点必须是对应子类的名字，即带 <strong>$</strong> 符号的类，直接用上层命名类是无法设置断点的（差点以为定位到问题了）：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">➜ jdb io.isenninha.anonymous_debug_problem.Main </span><br><span class="line">正在初始化jdb...</span><br><span class="line"><span class="meta">&gt;</span><span class="bash"> stop at io.isenninha.anonymous_debug_problem.AnonymousClass<span class="variable">$1</span>:11</span></span><br><span class="line">正在延迟断点io.isenninha.anonymous_debug_problem.AnonymousClass$1:11。</span><br><span class="line">将在加载类后设置。</span><br></pre></td></tr></table></figure>
+
+<p>​        可以看到提示 <code>正在延迟断点io.isenninha.anonymous_debug_problem.AnonymousClass$1:11</code>，此时类还未加载解析链接，自然是无法设置断点的。</p>
+<p>​        执行 <code>run</code> 指令：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">&gt;</span><span class="bash"> run</span></span><br><span class="line">运行io.isenninha.anonymous_debug_problem.Main</span><br><span class="line">设置未捕获的java.lang.Throwable</span><br><span class="line">设置延迟的未捕获的java.lang.Throwable</span><br><span class="line"><span class="meta">&gt;</span><span class="bash"> </span></span><br><span class="line">VM 已启动: 设置延迟的断点io.isenninha.anonymous_debug_problem.AnonymousClass$1:11</span><br><span class="line"></span><br><span class="line">断点命中: &quot;线程=main&quot;, io.isenninha.anonymous_debug_problem.AnonymousClass$1.run(), 行=11 bci=0</span><br></pre></td></tr></table></figure>
+
+<p>​        断点命中！那就是 IDEA 的 bug 了。</p>
+<h4 id="定位-IDEA-断点-bug"><a href="#定位-IDEA-断点-bug" class="headerlink" title="定位 IDEA 断点 bug"></a>定位 IDEA 断点 bug</h4><p>​        定位到是 IDEA 的 bug 就是相对简单了，毕竟是开源并且用 Java/Kotlin 开发的。（JVM 也有开源的 OpenJDK）。问题是如何调试 IDEA ？</p>
+<p>​        理论上来说，可以在 IDEA 的启动参数打开远程 Debug 端口，然后用另外的调试工具进行调试，比如上面的 JDB，或者是另外一个版本的 IDEA；或者从 github 下载对应版本的 IDEA Community Edition；最简单的方法其实是新建一个 Plugin demo，依赖 java 模块，启动插件，会以沙箱的方式运行一个当前版本的 IDEA。</p>
+<p>​        看了一下相关代码，大概的流程是：IDEA 会在进程启动前设置的断点相关类注册进 VM，VM 在加载解析相关类后会在 <strong>DebuggerEventThread</strong> 中回调 IDEA，关键代码如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">for</span> (Event event : eventSet)&#123;</span><br><span class="line">    <span class="comment">// 省略无关代码</span></span><br><span class="line">    processClassPrepareEvent(suspendContext, (ClassPrepareEvent)event, notifiedClassPrepareEventRequestors);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>​        IDEA 会在收到 prepare evnet 加载类回调的时候，查询断点相关数据，来判断是否需要向 VM 设置断点。在这里，IDEA 收到了 <code>io.isenninha.anonymous_debug_problem.AnonymousClass$1</code> 匿名内部类的 prepare 回调。继续深入相关逻辑，发现在 <code>PositionManagerImpl</code> 中，会尝试解析本地设置的断点是否与回调类有关联。IDEA 会尝试搜索 <strong>top-level class</strong>，在我们的例子中，就是 <code>io.isenninha.anonymous_debug_problem.AnonymousClass</code>，诡异的是 IDEA 没有在已加载解析的类中找到这个类，于是跳过对此类的断点设置。具体代码在 <code>PositionManagerImpl#getAllClasses</code>：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> List&lt;ReferenceType&gt; <span class="title">getAllClasses</span><span class="params">(<span class="meta">@NotNull</span> <span class="keyword">final</span> SourcePosition position)</span> <span class="keyword">throws</span> NoDataException </span>&#123;</span><br><span class="line">  <span class="keyword">return</span> ReadAction.compute(() -&gt; StreamEx.of(getLineClasses(position.getFile(), position.getLine()))</span><br><span class="line">                                          .flatMap(aClass -&gt; getClassReferences(aClass, position))</span><br><span class="line">                                          .toList());</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>​        这里基本上确认 IDEA 的 bug 所在了，也可以解释为何 toggle 重复设置断点又可以正常进入断点。</p>
+<p>​        但为什么会出现 top-level 类还未解析，就开始解析匿名内部类呢？按照代码控制流，这里是 <code>new</code> 指令触发了匿名内部类的加载解析，按理说这个时候， top-level 类也会因为 <code>invokestatic</code> 指令触发解析的。</p>
+<p>​        尝试在 top-level class 也设置断点，即 <code>new Runnable()</code> （位置0处），并关闭 Suspend。同时在调试 IDEA 的父 IDEA 回调 preapare event 的地方设置 <strong>evaluate log</strong>。这个时候，在父 IDEA 中出现了诡异的类加载顺序：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">prepare</span> <span class="title">envet</span>: <span class="title">io</span>.<span class="title">isenninha</span>.<span class="title">anonymous_debug_problem</span>.<span class="title">AnonymousClass</span>$1</span></span><br><span class="line"><span class="class"><span class="title">class</span> <span class="title">prepare</span> <span class="title">event</span>: <span class="title">io</span>.<span class="title">isenninha</span>.<span class="title">anonymous_debug_problem</span>.<span class="title">AnonymousClass</span></span></span><br></pre></td></tr></table></figure>
+
+<p>​        对比了一下可以正常断点的匿名内部类，加载顺序是先 top-level 类 -&gt; 匿名内部类，也就是按照控制流的顺序加载的。难道是提前加载了？看了一下上下文的相关代码，果然发现端倪，由于该类需要做一些反射调用缓存，在到达控制流代码的时候已经提前扫包解析了，这也可以解释为什么其他匿名内部类的断点又可以进入。简化后的扫包初始化逻辑：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">fakeScanClass</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    List&lt;String&gt; classList = Arrays.asList(</span><br><span class="line">            <span class="string">&quot;io.isenninha.anonymous_debug_problem.AnonymousClass$1&quot;</span>,</span><br><span class="line">            <span class="string">&quot;io.isenninha.anonymous_debug_problem.AnonymousClass&quot;</span>);</span><br><span class="line">    <span class="keyword">for</span> (String className : classList) &#123;</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            Class.forName(className, <span class="keyword">true</span>, Thread.currentThread().getContextClassLoader());</span><br><span class="line">        &#125; <span class="keyword">catch</span> (ClassNotFoundException ignore) &#123;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<p>扫包出来的类顺序是通过 <code>File#listFiles</code> 确定的，而该方法的注释：</p>
+<blockquote>
+<p>There is no guarantee that the name strings in the resulting array<br>will appear in any specific order; they are not, in particular, guaranteed to appear in alphabetical order.</p>
+</blockquote>
+<p>在 ext4 文件系统上，默认的顺序是 <code>alphabetical order</code>：</p>
+<blockquote>
+<p>➜  ls<br>‘AnonymousClass$1.class’   AnonymousClass.class   Main.class</p>
+</blockquote>
+<p>因为 <strong>.</strong> 符号，所以匿名内部类排序在命名类之前，导致上层应用的加载顺序有问题。最简单的处理方式是扫包后根据类的全限定名(去掉后缀 .class)做一次排序，断点可以正常进入了，问题解决。</p>
+<h4 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h4><p>​        综上，由于 IDEA 的断点模块的 bug，启动进程前设置匿名内部类断点，必须按照控制流的调用顺序初始化所有相关的类，否则会由于无法找到 top-level class 导致设置断点失败。</p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/IntelliJ-IDEA/" rel="tag"># IntelliJ IDEA</a>
+          
+            <a href="/tags/Debug-Inner-Anonymous-Class/" rel="tag"># Debug Inner Anonymous Class</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2022/08/21/idea-plugin/" rel="next" title="IDEA Plugin 开发经验">
+                <i class="fa fa-chevron-left"></i> IDEA Plugin 开发经验
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            Table of Contents
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            Overview
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name"></p>
+              <p class="site-description motion-element" itemprop="description"></p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives">
+              
+                  <span class="site-state-item-count">13</span>
+                  <span class="site-state-item-name">posts</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-categories">
+                <a href="/categories/index.html">
+                  <span class="site-state-item-count">6</span>
+                  <span class="site-state-item-name">categories</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                <a href="/tags/index.html">
+                  <span class="site-state-item-count">25</span>
+                  <span class="site-state-item-name">tags</span>
+                </a>
+              </div>
+            
+
+          </nav>
+
+          
+
+          
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%97%A0%E6%B3%95%E6%96%AD%E7%82%B9%E7%9A%84%E7%8E%AF%E5%A2%83"><span class="nav-number">1.</span> <span class="nav-text">无法断点的环境</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#debug-%E6%97%A0%E6%B3%95-debug"><span class="nav-number">2.</span> <span class="nav-text">debug 无法 debug</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%B0%9D%E8%AF%95%E7%94%A8%E5%85%B6%E4%BB%96%E5%B7%A5%E5%85%B7%E6%96%AD%E7%82%B9%E5%AE%9A%E4%BD%8D%E9%97%AE%E9%A2%98"><span class="nav-number">3.</span> <span class="nav-text">尝试用其他工具断点定位问题</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%AE%9A%E4%BD%8D-IDEA-%E6%96%AD%E7%82%B9-bug"><span class="nav-number">4.</span> <span class="nav-text">定位 IDEA 断点 bug</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%80%BB%E7%BB%93"><span class="nav-number">5.</span> <span class="nav-text">总结</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2022</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">senninha</span>
+
+  
+</div>
+
+
+  <div class="powered-by">Powered by <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a></div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">Theme &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Gemini</a> v5.1.4</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.4"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.1.4"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.4"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>
