@@ -68,7 +68,7 @@
 
 
 
-  <meta name="keywords" content="rsync," />
+  <meta name="keywords" content="IntelliJ IDEA," />
 
 
 
@@ -79,18 +79,22 @@
 
 
 
-<meta name="description" content="​    解决 rsync 无法删除文件夹问题。">
+<meta name="description" content="最近项目有一个重构的需求，纯靠文本替换无法完成，想到了用 IDEA Structural Replace。这次由于使用场景比较复杂，用到了 script，记录一下使用心得。">
 <meta property="og:type" content="article">
-<meta property="og:title" content="rsync--cannot delete non-empty directory">
-<meta property="og:url" content="https://isenninha.github.io/2020/11/13/rsync-cannot-delete-directory-md/index.html">
+<meta property="og:title" content="IDEA Structural Replace 使用心得">
+<meta property="og:url" content="https://isenninha.github.io/2024/03/30/idea-structural-replace/index.html">
 <meta property="og:site_name" content="senninha">
-<meta property="og:description" content="​    解决 rsync 无法删除文件夹问题。">
+<meta property="og:description" content="最近项目有一个重构的需求，纯靠文本替换无法完成，想到了用 IDEA Structural Replace。这次由于使用场景比较复杂，用到了 script，记录一下使用心得。">
 <meta property="og:locale">
-<meta property="article:published_time" content="2020-11-13T13:01:45.000Z">
-<meta property="article:modified_time" content="2022-01-21T03:52:12.330Z">
+<meta property="og:image" content="https://isenninha.github.io/2024/03/30/idea-structural-replace/simple_sr.png">
+<meta property="og:image" content="https://isenninha.github.io/2024/03/30/idea-structural-replace/psi_viewer.png">
+<meta property="og:image" content="https://isenninha.github.io/2024/03/30/idea-structural-replace/groovy.png">
+<meta property="article:published_time" content="2024-03-30T07:13:50.000Z">
+<meta property="article:modified_time" content="2024-03-30T09:17:38.073Z">
 <meta property="article:author" content="senninha">
-<meta property="article:tag" content="rsync">
+<meta property="article:tag" content="IntelliJ IDEA">
 <meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://isenninha.github.io/2024/03/30/idea-structural-replace/simple_sr.png">
 
 
 
@@ -120,13 +124,13 @@
 
 
 
-  <link rel="canonical" href="https://isenninha.github.io/2020/11/13/rsync-cannot-delete-directory-md/"/>
+  <link rel="canonical" href="https://isenninha.github.io/2024/03/30/idea-structural-replace/"/>
 
 
 
 
 
-  <title>rsync--cannot delete non-empty directory | senninha</title>
+  <title>IDEA Structural Replace 使用心得 | senninha</title>
   
 
 
@@ -253,7 +257,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="https://isenninha.github.io/2020/11/13/rsync-cannot-delete-directory-md/">
+    <link itemprop="mainEntityOfPage" href="https://isenninha.github.io/2024/03/30/idea-structural-replace/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="">
@@ -270,7 +274,7 @@
 
         
         
-          <h1 class="post-title" itemprop="name headline">rsync--cannot delete non-empty directory</h1>
+          <h1 class="post-title" itemprop="name headline">IDEA Structural Replace 使用心得</h1>
         
 
         <div class="post-meta">
@@ -282,8 +286,8 @@
               
                 <span class="post-meta-item-text">Posted on</span>
               
-              <time title="Post created" itemprop="dateCreated datePublished" datetime="2020-11-13T21:01:45+08:00">
-                2020-11-13
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2024-03-30T15:13:50+08:00">
+                2024-03-30
               </time>
             
 
@@ -305,8 +309,8 @@
               
               
                 <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Linux/" itemprop="url" rel="index">
-                    <span itemprop="name">Linux</span>
+                  <a href="/categories/DevTools/" itemprop="url" rel="index">
+                    <span itemprop="name">DevTools</span>
                   </a>
                 </span>
 
@@ -342,29 +346,48 @@
       
 
       
-        <p>​    解决 <strong>rsync</strong> 无法删除文件夹问题。</p>
+        <p>最近项目有一个重构的需求，纯靠文本替换无法完成，想到了用 IDEA Structural Replace。这次由于使用场景比较复杂，用到了 script，记录一下使用心得。</p>
 <span id="more"></span>
 
-<h4 id="1-rsync-无法删除文件夹"><a href="#1-rsync-无法删除文件夹" class="headerlink" title="1.rsync 无法删除文件夹"></a>1.rsync 无法删除文件夹</h4><p>有一个同步服务一直报<em>cannot delete non-empty directory</em>错误，具体表现为<em>source_dir</em>删除了的文件夹，在<em>target_dir</em>无法删除。</p>
-<ul>
-<li>target_dir:<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">ideavim/</span><br><span class="line">├── detekt</span><br><span class="line">├── doc</span><br><span class="line">├── gradle</span><br><span class="line">├── resourc</span><br></pre></td></tr></table></figure></li>
-<li>source_dir:<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">ideavim/</span><br><span class="line">├── detekt</span><br><span class="line">├── doc</span><br><span class="line">├── gradle</span><br></pre></td></tr></table></figure>
-rsync 同步:<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">rsync -azv --delete -exclude-from=/tmp/exlcude.txt source_dir target_dir</span><br></pre></td></tr></table></figure>
-然后就报这个错误了:<blockquote>
-<p>cannot delete non-empty directoryd: ideavim/resources</p>
-</blockquote>
-</li>
-</ul>
-<p>竟然删不掉，当即看了一下<em>exclude.txt</em>，过滤关键字也不会过滤到删不掉的文件夹。</p>
-<h4 id="2-解决方法"><a href="#2-解决方法" class="headerlink" title="2.解决方法"></a>2.解决方法</h4><p>谷歌搜了一圈，看到<a target="_blank" rel="noopener" href="https://serverfault.com/questions/573392/rsync-cannot-delete-non-empty-directory-errors-even-with-force-option">rsync-cannot-delete-non-empty-directory-errors-even-with-force-option</a></p>
+<h3 id="Structural-Replace-介绍"><a href="#Structural-Replace-介绍" class="headerlink" title="Structural Replace 介绍"></a>Structural Replace 介绍</h3><p>Structural Replace (下文简称 SR)，与普通文本替换的区别可见官方介绍：</p>
 <blockquote>
-<p>Did you try to add –delete-excluded?</p>
+<p>A conventional search process does not take into account the syntax and semantics of the source code. Even if you use regular expressions, IntelliJ IDEA still treats your code as a regular text. The structural search and replace (SSR) actions let you search for a particular code pattern or grammatical construct in your code considering your code structure.</p>
 </blockquote>
-<p>果断加这个参数，再带上<strong>–dry-run</strong>参数执行，啊这，确实删掉了，还把我<em>exclude-from</em>的列表也给干掉了，没用。</p>
-<p>不对，突然灵光乍现，看一下要删掉的<em>resources</em>到底有啥玩意：</p>
-<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">ideavim/resources/</span><br><span class="line">├── messages.properties</span><br></pre></td></tr></table></figure>
-<p>好家伙，这个<strong>messages.properties</strong>，正好是<strong>exclude.txt</strong>的过滤关键字，果断干掉所有的<strong>properties</strong>文件，再次执行同步命令，ok！</p>
-<p>出现这个问题的原因是因为一开始过滤关键字并没有<em>properties</em>，所以把这个文件同步到了<em>target_dir</em>，后来加上了过滤关键字，就请神容易，送神难了。</p>
+<p>简而言之，它可以按语法结构化搜索并替换。所谓的结构搜索，是以它内部的 PSI 为单位进行搜索。PSI 指Program Structure Interface，是 IDEA 内部解析索引代码文件的结构。</p>
+<h3 id="简单使用"><a href="#简单使用" class="headerlink" title="简单使用"></a>简单使用</h3><p>如下代码：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">public void getOrDefault() &#123;</span><br><span class="line">    Map&lt;Integer, String&gt; mp = new HashMap&lt;&gt;();</span><br><span class="line">    mp.getOrDefault(10, &quot;666&quot;);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>需要将所有的 getOrDefault 替换成以下模板方法：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">public static &lt;K, V&gt; V getOrDefault(Map&lt;K, V&gt; mp, K key, V defaultVal) &#123;</span><br><span class="line">    V v = mp.get(key);</span><br><span class="line">    if (v == null) &#123;</span><br><span class="line">        return defaultVal;</span><br><span class="line">    &#125;</span><br><span class="line">    return v;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>使用结构化查询如下：<br><img src="/2024/03/30/idea-structural-replace/simple_sr.png" alt="simple_sr.png"></p>
+<p>搜索匹配需要注意的几个点：</p>
+<ul>
+<li>选中 MethodCall 模板</li>
+<li>Instance 添加 Type 限制</li>
+<li>MethodCall 添加 变量名限制</li>
+</ul>
+<p>在替换内容输入框，用上面匹配到的变量 Instance、Parameter 进行组装替换后的内容。<br>点击 Find -&gt; Replace All 就全部替换成功。</p>
+<h3 id="使用-Groovy-Script-进行替换"><a href="#使用-Groovy-Script-进行替换" class="headerlink" title="使用 Groovy Script 进行替换"></a>使用 Groovy Script 进行替换</h3><p>上述替换用普通的文本替换也可以完成，但遇到替换结果要经过计算产生，就需要使用 Groovy Script 调用 IDEA 内部的 PSI 接口进行了。</p>
+<p>还是上面的替换模板，只是替换输出需要增加泛型的类型：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">public void getOrDefault() &#123;</span><br><span class="line">    Map&lt;Integer, String&gt; mp = new HashMap&lt;&gt;();</span><br><span class="line">    TestStructuralReplace.getOrDefault(mp, 10, &quot;666&quot;, Integer.class, String.class);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>对于上述需求，搜索的模板不需要更改，只需要修改替换模板。重点是用 Groovy Script 提取出 Instance 变量的类型：</p>
+<h4 id="使用-PSI-Viewer-查看被搜索对象的-PSI-类型"><a href="#使用-PSI-Viewer-查看被搜索对象的-PSI-类型" class="headerlink" title="使用 PSI Viewer 查看被搜索对象的 PSI 类型"></a>使用 PSI Viewer 查看被搜索对象的 PSI 类型</h4><p>对于该搜索对象，PSI 类型是 PsiReferenceExpression。</p>
+<p><img src="/2024/03/30/idea-structural-replace/psi_viewer.png" alt="psi_viewer.png"></p>
+<h4 id="构造-Groovy-Script-脚本替换"><a href="#构造-Groovy-Script-脚本替换" class="headerlink" title="构造 Groovy Script 脚本替换"></a>构造 Groovy Script 脚本替换</h4><p>此替换与简单替换的区别是需要在替换面板新增两个通过计算得出的参数：key_class, value_class，这两个参数是通过 groovy script 运行得出的。如何构造出脚本见下一段段落。</p>
+<p><img src="/2024/03/30/idea-structural-replace/groovy.png" alt="groovy_search.png"></p>
+<p>从上一步查出 PSI 类型后，打开 IDEA SDK 搜索对应的源码文件 PsiReferenceExpression。</p>
+<p>构造 key_class 参数的脚本如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">def strType = Instance.getReference().resolve().getType().getCanonicalText(false)</span><br><span class="line">strType = strType.substring(strType.indexOf(&#x27;&lt;&#x27;) + 1, strType.indexOf(&#x27;,&#x27;))</span><br><span class="line">return strType</span><br></pre></td></tr></table></figure>
+
+<p>第一行代码输出的字符串类型的 strType 是 <code>java.util.Map&lt;java.lang.Integer,java.lang.String&gt;</code>，这一步后就可以直接通过字符串切割获得 Integer 或 String 了。</p>
+<p>value_class 同理。至此，替换完成。</p>
+<h3 id="脚本构造调试心得"><a href="#脚本构造调试心得" class="headerlink" title="脚本构造调试心得"></a>脚本构造调试心得</h3><p>构造过程中如何调试脚本？最简单的方法是写完在替换框点击 preview 看对应的输出，如果太过复杂的脚本，可以通过新建插件工程，执行 PsiVisitor 遍历对应替换对象模板时断点进行实时的脚本编写与输出。</p>
+<p>另外留意的点，Groovy Script 也适用于 Search template，不过只能输出 true or false 进行条件判断，并不像 Replace template 可以直接参与输出结果这样灵活。</p>
+<h3 id="参考文档"><a href="#参考文档" class="headerlink" title="参考文档"></a>参考文档</h3><ul>
+<li><a target="_blank" rel="noopener" href="https://www.jetbrains.com/help/idea/structural-search-and-replace.html">Structural search and replace</a></li>
+</ul>
 
       
     </div>
@@ -382,7 +405,7 @@ rsync 同步:<figure class="highlight plaintext"><table><tr><td class="gutter"><
       
         <div class="post-tags">
           
-            <a href="/tags/rsync/" rel="tag"># rsync</a>
+            <a href="/tags/IntelliJ-IDEA/" rel="tag"># IntelliJ IDEA</a>
           
         </div>
       
@@ -395,8 +418,8 @@ rsync 同步:<figure class="highlight plaintext"><table><tr><td class="gutter"><
         <div class="post-nav">
           <div class="post-nav-next post-nav-item">
             
-              <a href="/2020/11/12/http-client/" rel="next" title="Java Http Client 连接池复用研究">
-                <i class="fa fa-chevron-left"></i> Java Http Client 连接池复用研究
+              <a href="/2022/10/16/idea-debug-inner-anonymous-class-problem/" rel="next" title="Debug IDEA 匿名内部类断点无法进入问题">
+                <i class="fa fa-chevron-left"></i> Debug IDEA 匿名内部类断点无法进入问题
               </a>
             
           </div>
@@ -404,10 +427,6 @@ rsync 同步:<figure class="highlight plaintext"><table><tr><td class="gutter"><
           <span class="post-nav-divider"></span>
 
           <div class="post-nav-prev post-nav-item">
-            
-              <a href="/2021/03/06/LinkedBlockingQueue-infinite-loop/" rel="prev" title="LinkedBlockingQueue 死循环">
-                LinkedBlockingQueue 死循环 <i class="fa fa-chevron-right"></i>
-              </a>
             
           </div>
         </div>
@@ -539,7 +558,7 @@ rsync 同步:<figure class="highlight plaintext"><table><tr><td class="gutter"><
             
 
             
-              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-4"><a class="nav-link" href="#1-rsync-%E6%97%A0%E6%B3%95%E5%88%A0%E9%99%A4%E6%96%87%E4%BB%B6%E5%A4%B9"><span class="nav-number">1.</span> <span class="nav-text">1.rsync 无法删除文件夹</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-%E8%A7%A3%E5%86%B3%E6%96%B9%E6%B3%95"><span class="nav-number">2.</span> <span class="nav-text">2.解决方法</span></a></li></ol></div>
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#Structural-Replace-%E4%BB%8B%E7%BB%8D"><span class="nav-number">1.</span> <span class="nav-text">Structural Replace 介绍</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%AE%80%E5%8D%95%E4%BD%BF%E7%94%A8"><span class="nav-number">2.</span> <span class="nav-text">简单使用</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%BD%BF%E7%94%A8-Groovy-Script-%E8%BF%9B%E8%A1%8C%E6%9B%BF%E6%8D%A2"><span class="nav-number">3.</span> <span class="nav-text">使用 Groovy Script 进行替换</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E4%BD%BF%E7%94%A8-PSI-Viewer-%E6%9F%A5%E7%9C%8B%E8%A2%AB%E6%90%9C%E7%B4%A2%E5%AF%B9%E8%B1%A1%E7%9A%84-PSI-%E7%B1%BB%E5%9E%8B"><span class="nav-number">3.1.</span> <span class="nav-text">使用 PSI Viewer 查看被搜索对象的 PSI 类型</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%9E%84%E9%80%A0-Groovy-Script-%E8%84%9A%E6%9C%AC%E6%9B%BF%E6%8D%A2"><span class="nav-number">3.2.</span> <span class="nav-text">构造 Groovy Script 脚本替换</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%84%9A%E6%9C%AC%E6%9E%84%E9%80%A0%E8%B0%83%E8%AF%95%E5%BF%83%E5%BE%97"><span class="nav-number">4.</span> <span class="nav-text">脚本构造调试心得</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%8F%82%E8%80%83%E6%96%87%E6%A1%A3"><span class="nav-number">5.</span> <span class="nav-text">参考文档</span></a></li></ol></div>
             
 
           </div>
