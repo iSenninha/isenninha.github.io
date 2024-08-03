@@ -87,7 +87,7 @@
 <meta property="og:description" content="代码片段​        以下是一段很简单的函数，对传入的参数进行 除以8 的操作： 123long arith(long a) &amp;#123;	return a &#x2F; 8;&amp;#125;">
 <meta property="og:locale">
 <meta property="article:published_time" content="2022-05-03T03:21:53.000Z">
-<meta property="article:modified_time" content="2022-05-03T10:08:30.289Z">
+<meta property="article:modified_time" content="2024-08-03T15:09:11.635Z">
 <meta property="article:author" content="senninha">
 <meta property="article:tag" content="assembly">
 <meta property="article:tag" content="c">
@@ -374,6 +374,7 @@
 <p>​        <code>leaq 7(%rax), %rdx</code> 将 <strong>rax + 7</strong> 并将值传递到 <strong>rdx</strong> 寄存器；随后 <code>testq %rax, %rax</code> 指令会设置条件寄存器，配合条件传输指令 <code>comvs %rdx, %rax</code> 实现的效果是：如果 <strong>rax &lt; 0</strong>，那么 rax = rdx，即 <strong>rax + 7</strong>。随后是一个算术右移计算 <code>sarq $3, %rax</code>。处以8 用移位 &gt;&gt;3 运算代替，这个很容易理解，但是为什么在移位之前需要做一个 <strong>+7</strong> 的操作呢？</p>
 <p>​        首先回顾一下整数除法的定义，如果一个数不能被整除，向靠近 0 的数值舍入。比如 <code>15/8 = 1</code>，这个例子转换成二进制右移就是 <code>1111 &gt;&gt; 3 = 0001</code> ，低位的 <code>111</code>舍去了。但是对于负数（byte，方便展示）来说，<code>-15/8 = -1</code>，对应的二进制逻辑右移是 <code>1111 0001 &gt;&gt; 3 = 1111 1110(-2)</code> ，结果是向<strong>偏离 0</strong> 的方向舍入了，需要在这个结果上 <strong>+1</strong>，才能得到除法定义的结果。如何才能 +1 呢，答案就是在执行逻辑右移前 <code>+7 = +0111</code>，也就是原被除数的低 3 位，只要任意一个位为 1，那么在 +7 后都可以让低 4 位进1，即在最后的结果中 +1。等等，这样处理不会让结果变大吗？答案是不会，因为 <strong>低3位</strong> 在逻辑右移的过程中已经被抹去了。另外一个问题又出现了，正数的情况呢？这就是 <code>cmovs %rdx, %rax</code> 条件传输指令起到的作用，只有负数的情况才会对被除数做<strong>偏置处理（biasing）</strong>。扩展开来，也就是负数需要用移位代替除法，需要加上 <strong>(2^x)-1)</strong> 的偏置值。</p>
 <p>​        这里还有一个点就是，为什么负数逻辑右移后会向远离 0 的方向舍入？这个问题可以从补码的定义上理解。假设一个 <code>byte a = -127</code>，二进制补码表示是：<code>1000 0001</code> ，大学刚学数电的时候一直搞不清补码如何转换成 10 进制的真实值，后来在  <strong>CSAPP</strong> 中看到这个定义，豁然开朗。即：最高位看成是符号为 <strong>负</strong> 的权重位。所以负数逻辑右移过程中丢弃的都是正数位的有效值，那么它的结果往远离 0 的方向偏移（即变小）。而加上  <strong>(2^x)-1)</strong> 的偏置值，可以将丢弃的正低位进位，来达到向 0 靠近的效果。</p>
+<p>​        正数的右移一位效果等于除以2很好理解：高位补0，每个有效位都变成 1/2，最终的结果就是除以2。负数的表示是补码，右移的逻辑没有那么清晰。上面说到，负数的补码可以这么理解，最高位的 1 看成是对应 <strong>-2^x</strong> 的负数值，其余的位当成正常的值看，将以上值全部加起来，就是对应的 -n。反过来说，这个 n 直接就是补码所有 0 所在位的值累加，再加上1。而算数右移高位是补1的，可以看成是所有的 0 向右移动了位置，即所有累加的值 / 2，再加上上面说的偏置值，就可以用算数右移取代除法操作了。</p>
 <h4 id="条件传输指令"><a href="#条件传输指令" class="headerlink" title="条件传输指令"></a>条件传输指令</h4><p>​        上一段讲到只有负数的情况，才会将被除数做 <strong>+7</strong> 操作，但是汇编代码并没有类似 <strong>if-else</strong> 的逻辑，而是用条件传输指令 <code>cmovs    %rdx, %rax</code> 代替。</p>
 <p>​    这是因为现代处理器高度依赖于 <strong>pipeline</strong> ，取指，译码，读内存，逻辑运算，写内存，更新程序计数器都是在在流水线中重叠连续的，一旦发生条件跳转并且分支预测失败，那么需要丢弃该跳转之后所有指令已经做的工作，也就是分支预测错误惩罚，浪费 <strong>15~30</strong> 个时钟周期。所以在上述情况下，因为两个分支的计算都很简单，编译器选择将两个分支的计算结果都保存起来（实际上是计算 1 个），通过条件传输指令替代条件跳转指令进行优化。</p>
 <h4 id="其他"><a href="#其他" class="headerlink" title="其他"></a>其他</h4><p>​        其实这段编译出来的代码，栈指针保存，保存函数参数都不是必须的，只是在默认编译参数下编译才会有，如果我们用 <code>gcc -S -Og test.c</code> 参数，编译出来的代码会更加紧凑，如下：</p>
