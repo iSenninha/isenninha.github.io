@@ -68,7 +68,7 @@
 
 
 
-  <meta name="keywords" content="IntelliJ IDEA,Visual Studio Code,Keymap," />
+  <meta name="keywords" content="jitWatch," />
 
 
 
@@ -79,20 +79,22 @@
 
 
 
-<meta name="description" content="​    平时简单的写一些脚本或者看开源代码，打开IDEA太重了，一般都是VSC一把刷。由于不熟悉vsc的快捷键，效率实在太低，一开始用了IDEA Keybindings这个插件，但是总是有一些快捷键无法原生映射，用着反而嗝应，所以还是花点时间熟悉一下vsc上的快捷键，对照着IDEA的一些常用快捷键来对比熟悉。">
+<meta name="description" content="最近工作中需要验证某种写法在 jit 下的行为，捣鼓了一下 jit-watch，现在记录下相关步骤。">
 <meta property="og:type" content="article">
-<meta property="og:title" content="IDEA &amp; VSC快捷键对照">
-<meta property="og:url" content="https://isenninha.github.io/2020/03/24/idea_and_vsc_keymap_contrast/index.html">
+<meta property="og:title" content="JitWatch">
+<meta property="og:url" content="https://isenninha.github.io/2024/08/04/jit-watch/index.html">
 <meta property="og:site_name" content="senninha">
-<meta property="og:description" content="​    平时简单的写一些脚本或者看开源代码，打开IDEA太重了，一般都是VSC一把刷。由于不熟悉vsc的快捷键，效率实在太低，一开始用了IDEA Keybindings这个插件，但是总是有一些快捷键无法原生映射，用着反而嗝应，所以还是花点时间熟悉一下vsc上的快捷键，对照着IDEA的一些常用快捷键来对比熟悉。">
+<meta property="og:description" content="最近工作中需要验证某种写法在 jit 下的行为，捣鼓了一下 jit-watch，现在记录下相关步骤。">
 <meta property="og:locale">
-<meta property="article:published_time" content="2020-03-24T02:29:29.000Z">
-<meta property="article:modified_time" content="2022-01-21T03:53:47.973Z">
+<meta property="og:image" content="https://isenninha.github.io/2024/08/04/jit-watch/jitwatch.png">
+<meta property="og:image" content="https://isenninha.github.io/2024/08/04/jit-watch/jit_watch_sandbox_config.png">
+<meta property="og:image" content="https://isenninha.github.io/2024/08/04/jit-watch/sandbox_test.png">
+<meta property="article:published_time" content="2024-08-04T03:25:29.000Z">
+<meta property="article:modified_time" content="2024-08-04T05:52:51.498Z">
 <meta property="article:author" content="senninha">
-<meta property="article:tag" content="IntelliJ IDEA">
-<meta property="article:tag" content="Visual Studio Code">
-<meta property="article:tag" content="Keymap">
+<meta property="article:tag" content="jitWatch">
 <meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://isenninha.github.io/2024/08/04/jit-watch/jitwatch.png">
 
 
 
@@ -122,13 +124,13 @@
 
 
 
-  <link rel="canonical" href="https://isenninha.github.io/2020/03/24/idea_and_vsc_keymap_contrast/"/>
+  <link rel="canonical" href="https://isenninha.github.io/2024/08/04/jit-watch/"/>
 
 
 
 
 
-  <title>IDEA & VSC快捷键对照 | senninha</title>
+  <title>JitWatch | senninha</title>
   
 
 
@@ -255,7 +257,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="https://isenninha.github.io/2020/03/24/idea_and_vsc_keymap_contrast/">
+    <link itemprop="mainEntityOfPage" href="https://isenninha.github.io/2024/08/04/jit-watch/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="">
@@ -272,7 +274,7 @@
 
         
         
-          <h1 class="post-title" itemprop="name headline">IDEA & VSC快捷键对照</h1>
+          <h1 class="post-title" itemprop="name headline">JitWatch</h1>
         
 
         <div class="post-meta">
@@ -284,8 +286,8 @@
               
                 <span class="post-meta-item-text">Posted on</span>
               
-              <time title="Post created" itemprop="dateCreated datePublished" datetime="2020-03-24T10:29:29+08:00">
-                2020-03-24
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2024-08-04T11:25:29+08:00">
+                2024-08-04
               </time>
             
 
@@ -344,205 +346,42 @@
       
 
       
-        <p>​    平时简单的写一些脚本或者看开源代码，打开IDEA太重了，一般都是VSC一把刷。由于不熟悉vsc的快捷键，效率实在太低，一开始用了<strong>IDEA Keybindings</strong>这个插件，但是总是有一些快捷键无法原生映射，用着反而嗝应，所以还是花点时间熟悉一下vsc上的快捷键，对照着IDEA的一些常用快捷键来对比熟悉。</p>
+        <p>最近工作中需要验证某种写法在 jit 下的行为，捣鼓了一下 jit-watch，现在记录下相关步骤。</p>
 <span id="more"></span>
 
-<p>​    下表的<strong>含义</strong>列是Idea Keymap里的描述，<strong>Idea Keymap</strong>列是以IdeaGnomeKeymap快捷键为基准，部分魔改过。</p>
-<table>
-<thead>
-<tr>
-<th align="center">含义</th>
-<th align="center">VSC Keymap</th>
-<th align="center">Idea Keymap</th>
-</tr>
-</thead>
-<tbody><tr>
-<td align="center">界面操作</td>
-<td align="center">———-</td>
-<td align="center"></td>
-</tr>
-<tr>
-<td align="center">Previous Tab(前一个tab)</td>
-<td align="center">Ctrl + Shift + Tab</td>
-<td align="center">Alt + L</td>
-</tr>
-<tr>
-<td align="center">Next Tab(前一个tab)</td>
-<td align="center">Ctrl + Shift + Tab</td>
-<td align="center">Alt + H</td>
-</tr>
-<tr>
-<td align="center">Back(向后)</td>
-<td align="center">Ctrl + Alt + -</td>
-<td align="center">Ctrl + Shift + Left Arrow(Ctrl + Alt + Shift + H)</td>
-</tr>
-<tr>
-<td align="center">Forward(向前)</td>
-<td align="center">Ctrl + Shift + -</td>
-<td align="center">Ctrl + Shift + Right Arrow(Ctrl + Alt + Shift + L)</td>
-</tr>
-<tr>
-<td align="center">Close</td>
-<td align="center">Ctrl + W</td>
-<td align="center">Ctrl + F4</td>
-</tr>
-<tr>
-<td align="center">Close All</td>
-<td align="center">Ctrl + K Ctrl + W</td>
-<td align="center">Ctrl + Shift + Q</td>
-</tr>
-<tr>
-<td align="center">Project(切换焦点到Project)</td>
-<td align="center">Alt + 1</td>
-<td align="center">Ctrl + Shift + E(焦点在Explorer的时候可以切换回Editor)</td>
-</tr>
-<tr>
-<td align="center">Open Class</td>
-<td align="center">Ctrl + P</td>
-<td align="center">Ctrl + N</td>
-</tr>
-<tr>
-<td align="center">Run(打开Run输出面板)</td>
-<td align="center">Ctrl + K Ctrl + H</td>
-<td align="center">Alt + 4(关闭的话按 Ctrl + F4)</td>
-</tr>
-<tr>
-<td align="center">Debug(打开Debug输出面板)</td>
-<td align="center">Ctrl + Shift + Y</td>
-<td align="center">Alt + 5</td>
-</tr>
-<tr>
-<td align="center">Split Vertically(垂直分屏)</td>
-<td align="center">Ctrl + \</td>
-<td align="center">Alt + V</td>
-</tr>
-<tr>
-<td align="center">Goto Previous Splitter</td>
-<td align="center">Ctrl + K Ctrl Left Arrow</td>
-<td align="center">Ctrl + Alt + 2</td>
-</tr>
-<tr>
-<td align="center">Goto Next Splitter</td>
-<td align="center">Ctrl + K Ctrl Right Arrow</td>
-<td align="center">Ctrl + Alt + 3</td>
-</tr>
-<tr>
-<td align="center">Focus into 1,2,3 splitter</td>
-<td align="center">Ctrl + 1/2/3</td>
-<td align="center">None</td>
-</tr>
-<tr>
-<td align="center">编辑相关</td>
-<td align="center">———-</td>
-<td align="center"></td>
-</tr>
-<tr>
-<td align="center">Parameter Info(提示输入参数)</td>
-<td align="center">Ctrl + Space</td>
-<td align="center">Ctrl + P</td>
-</tr>
-<tr>
-<td align="center">Format Code</td>
-<td align="center">Ctrl + K Ctrl + F</td>
-<td align="center">Ctrl + Alt + F</td>
-</tr>
-<tr>
-<td align="center">Show Context Actions(Quick Fix)</td>
-<td align="center">Ctrl + .</td>
-<td align="center">Alt + Enter</td>
-</tr>
-<tr>
-<td align="center">Find Usages</td>
-<td align="center">Shift + F12</td>
-<td align="center">Alt + Shift + 7</td>
-</tr>
-<tr>
-<td align="center">Rename</td>
-<td align="center">F2</td>
-<td align="center">Shift + F6</td>
-</tr>
-<tr>
-<td align="center">Expand Selection</td>
-<td align="center">Shift + Alt + Right Arrow</td>
-<td align="center">Ctrl + W</td>
-</tr>
-<tr>
-<td align="center">Shrink Selection</td>
-<td align="center">Shift + Alt + Left Arrow</td>
-<td align="center">Ctrl + Shift + W</td>
-</tr>
-<tr>
-<td align="center">Replace</td>
-<td align="center">Ctrl + H</td>
-<td align="center">Ctrl + R</td>
-</tr>
-<tr>
-<td align="center">Next Highlighted Error</td>
-<td align="center">F2</td>
-<td align="center">F8</td>
-</tr>
-<tr>
-<td align="center">Previous Highlighted Error</td>
-<td align="center">Shift + F2</td>
-<td align="center">Shift + F8</td>
-</tr>
-<tr>
-<td align="center">Select All Occurrences(选中所有当前的选择)</td>
-<td align="center">Ctrl + Shift + L (Ctrl + F2(Select Current Word))</td>
-<td align="center">Ctrl + Alt + Shift + B</td>
-</tr>
-<tr>
-<td align="center">调试相关</td>
-<td align="center">———-</td>
-<td align="center"></td>
-</tr>
-<tr>
-<td align="center">Toggle Line Breakpoint</td>
-<td align="center">F9</td>
-<td align="center">Ctrl + F8</td>
-</tr>
-<tr>
-<td align="center">Step Into</td>
-<td align="center">F11</td>
-<td align="center">F7</td>
-</tr>
-<tr>
-<td align="center">Step Out</td>
-<td align="center">Shift + F11</td>
-<td align="center">Shift + F8</td>
-</tr>
-<tr>
-<td align="center">Step Over</td>
-<td align="center">F10</td>
-<td align="center">F8</td>
-</tr>
-<tr>
-<td align="center">Start</td>
-<td align="center">F5</td>
-<td align="center">Shift + F10</td>
-</tr>
-<tr>
-<td align="center">Stop</td>
-<td align="center">Shift + F5</td>
-<td align="center">Ctrl + F2</td>
-</tr>
-<tr>
-<td align="center">语言相关</td>
-<td align="center">———-</td>
-<td align="center"></td>
-</tr>
-<tr>
-<td align="center">Implementation(s)</td>
-<td align="center">Ctrl + F12</td>
-<td align="center">Ctrl + Alt + B</td>
-</tr>
-<tr>
-<td align="center">Navigate(Class…)</td>
-<td align="center">Ctrl + T</td>
-<td align="center">Ctrl + N</td>
-</tr>
-</tbody></table>
-<p>附录:<a target="_blank" rel="noopener" href="https://code.visualstudio.com/shortcuts/keyboard-shortcuts-linux.pdf">VSC-Keymap</a></p>
+<h3 id="前置准备"><a href="#前置准备" class="headerlink" title="前置准备"></a>前置准备</h3><p>在启动参数中增加 <code>java -XX:+UnlockDiagnosticVMOptions -XX:+PrintNMethods -Xcomp</code> 即可输出 jit 编译结果到控制台，但是这样输出的是二进制机器码，需要安装 <code>hsdis</code> 动态库将其转换成汇编。hsdis 的<a target="_blank" rel="noopener" href="https://chriswhocodes.com/hsdis/">下载地址</a>。</p>
+<p>下载完成后将对应的文件放在如下位置：</p>
+<blockquote>
+<p><JDK_HOME>/lib/server/hsdis-<arch>.<extension><br><JDK_HOME>/lib/hsdis-<arch>.<extension></extension></arch></JDK_HOME></extension></arch></JDK_HOME></p>
+</blockquote>
+<p>这个时候再次运行程序，输出到控制台的就是汇编语句了。为了方便查看，一般还需要重定向到文件中，过程略显繁琐，jitwatch 登场。</p>
+<h3 id="JitWatch"><a href="#JitWatch" class="headerlink" title="JitWatch"></a>JitWatch</h3><p>JitWatch github 地址：<a target="_blank" rel="noopener" href="https://github.com/AdoptOpenJDK/jitwatch">JitWatch</a>。<code>mvn clean package</code> 编译，在路径 <code>jitwatch/scripts</code> 执行 <code>bash launchUI.sh</code> 即可运行。</p>
+<p>如遇到菜单文字乱码，在启动脚本里增加 <code>-Duser.language=en</code> 指定英文。</p>
+<h5 id="javafx-运行环境"><a href="#javafx-运行环境" class="headerlink" title="javafx 运行环境"></a>javafx 运行环境</h5><p>另外，如果使用的是高版本的 JDK，javafx 已经分离开，而 jitwatch 依赖 javafx，需要按如下步骤配置 javafx 运行环境：</p>
+<ul>
+<li><p>下载 javafx  sdk 并解压 <a target="_blank" rel="noopener" href="https://gluonhq.com/products/javafx/">javafx</a></p>
+</li>
+<li><p>配置 launchUI.sh 如下：</p>
+<ul>
+<li><p>导出 javafx 的地址变量：<code>javafx_path=/home/senninha/soft/jdk/javafx-sdk-22.0.2/lib</code></p>
+</li>
+<li><p>启动参数增加 <code>--module-path $javafx_path --add-modules javafx.controls</code></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">javafx_path=/home/senninha/soft/jdk/javafx-sdk-22.0.2/lib</span><br><span class="line"></span><br><span class="line"><span class="string">&quot;<span class="variable">$JAVA_HOME</span>/bin/java&quot;</span> --module-path <span class="variable">$javafx_path</span> --add-modules javafx.controls -Duser.language=en -cp <span class="string">&quot;<span class="variable">$CLASSPATH</span>&quot;</span> <span class="string">&quot;<span class="variable">$@</span>&quot;</span> org.adoptopenjdk.jitwatch.launch.LaunchUI</span><br></pre></td></tr></table></figure>
+
+</li>
+</ul>
+</li>
+</ul>
+<p>启动：</p>
+<h4 id="沙箱"><a href="#沙箱" class="headerlink" title="沙箱"></a><img src="/2024/08/04/jit-watch/jitwatch.png" alt="image-20240804124847318">沙箱</h4><p>JitWatch 有沙箱模式，可以在配置好的环境中运行代码并给出源代码、字节码、Jit 的汇编代码对比。现在先配置一下沙箱环境，将 Java 运行时配置成已经安装了 <code>hsdis.so</code> 文件的版本。</p>
+<p><img src="/2024/08/04/jit-watch/jit_watch_sandbox_config.png" alt="jit_watch_sandbox_config"></p>
+<h4 id="运行示例代码"><a href="#运行示例代码" class="headerlink" title="运行示例代码"></a>运行示例代码</h4><p>直接在沙箱中 editor 新建一个文件，run 运行以下代码：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> java.util.ArrayList;</span><br><span class="line"><span class="keyword">import</span> java.util.List;</span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@author</span> senninha</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">TestJitOutput</span> </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">int</span> count = <span class="number">1000000</span>;</span><br><span class="line">        List&lt;Integer&gt; lst = <span class="keyword">new</span> ArrayList&lt;&gt;();</span><br><span class="line">        <span class="keyword">while</span> (count-- &gt; <span class="number">0</span>) &#123;</span><br><span class="line">            lst.add(<span class="keyword">new</span> TestJitInstance().calc(count));</span><br><span class="line">        &#125;</span><br><span class="line">        System.out.println(lst);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="class"><span class="keyword">class</span> <span class="title">TestJitInstance</span> </span>&#123;</span><br><span class="line">        <span class="function"><span class="keyword">public</span> <span class="keyword">int</span> <span class="title">calc</span><span class="params">(<span class="keyword">int</span> i)</span> </span>&#123;</span><br><span class="line">            <span class="keyword">return</span> i * <span class="number">10</span>;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>可以直接看到源代码、字节码、jit汇编代码：</p>
+<p><img src="/2024/08/04/jit-watch/sandbox_test.png" alt="sandbox_test"></p>
+<p>可以看到，示例代码中的 <code>new TestJitInstance()</code> 在 jit 后被消除，calc 中的逻辑被内联完全展开。</p>
+<p>对于最右边的汇编，可以参考哈佛大学的 <a target="_blank" rel="noopener" href="https://cs61.seas.harvard.edu/site/2023/Asm/">cs61</a>，非常浅显易懂。</p>
 
       
     </div>
@@ -560,11 +399,7 @@
       
         <div class="post-tags">
           
-            <a href="/tags/IntelliJ-IDEA/" rel="tag"># IntelliJ IDEA</a>
-          
-            <a href="/tags/Visual-Studio-Code/" rel="tag"># Visual Studio Code</a>
-          
-            <a href="/tags/Keymap/" rel="tag"># Keymap</a>
+            <a href="/tags/jitWatch/" rel="tag"># jitWatch</a>
           
         </div>
       
@@ -577,8 +412,8 @@
         <div class="post-nav">
           <div class="post-nav-next post-nav-item">
             
-              <a href="/2020/03/08/use-mat/" rel="next" title="Memory Analyzer使用">
-                <i class="fa fa-chevron-left"></i> Memory Analyzer使用
+              <a href="/2024/06/22/build-idea-ce/" rel="next" title="从源码编译 IDEA 社区版">
+                <i class="fa fa-chevron-left"></i> 从源码编译 IDEA 社区版
               </a>
             
           </div>
@@ -586,10 +421,6 @@
           <span class="post-nav-divider"></span>
 
           <div class="post-nav-prev post-nav-item">
-            
-              <a href="/2020/04/11/mysql-forcing-innodb-recovery/" rel="prev" title="MySQL Innodb Recovery崩溃恢复">
-                MySQL Innodb Recovery崩溃恢复 <i class="fa fa-chevron-right"></i>
-              </a>
             
           </div>
         </div>
@@ -641,8 +472,17 @@
       
 
       
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            Table of Contents
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            Overview
+          </li>
+        </ul>
+      
 
-      <section class="site-overview-wrap sidebar-panel sidebar-panel-active">
+      <section class="site-overview-wrap sidebar-panel">
         <div class="site-overview">
           <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
             
@@ -702,6 +542,22 @@
         </div>
       </section>
 
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%89%8D%E7%BD%AE%E5%87%86%E5%A4%87"><span class="nav-number">1.</span> <span class="nav-text">前置准备</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#JitWatch"><span class="nav-number">2.</span> <span class="nav-text">JitWatch</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#javafx-%E8%BF%90%E8%A1%8C%E7%8E%AF%E5%A2%83"><span class="nav-number">2.0.1.</span> <span class="nav-text">javafx 运行环境</span></a></li></ol></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E6%B2%99%E7%AE%B1"><span class="nav-number">2.1.</span> <span class="nav-text">沙箱</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E8%BF%90%E8%A1%8C%E7%A4%BA%E4%BE%8B%E4%BB%A3%E7%A0%81"><span class="nav-number">2.2.</span> <span class="nav-text">运行示例代码</span></a></li></ol></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
       
 
       
